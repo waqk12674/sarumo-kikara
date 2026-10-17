@@ -9,10 +9,12 @@ import { onResult } from "./ranking.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
+const SHARE_W = 1200, SHARE_H = 630, SHARE_TOP = 78; // Xでシェアの画像（上の帯に題字と点数、その下が絵）
+const WIDE_W = SHARE_W, WIDE_H = SHARE_H - SHARE_TOP;
 const URL = "https://waqk.jp/sarumo-kikara/" + (LANG === "en" ? "en/" : "");
 
 // サルたちに寄って撮る（サルがいなければ木の上のほう）
-function frameShot(members) {
+function frameShot(members, W = SNAP_W, H = SNAP_H) {
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (const m of members) {
     const p = m.body.position, t = m.type;
@@ -23,14 +25,25 @@ function frameShot(members) {
   const mx = (x1 - x0) * 0.04; // 余白は少なめにして、サルをできるだけ大きく映す
   x0 -= mx; x1 += mx; y0 -= (y1 - y0) * 0.03;
   let w = x1 - x0, h = Math.max(y1 - y0, 280);
-  const ar = SNAP_W / SNAP_H;
+  const ar = W / H;
   if (w / h < ar) w = h * ar; else h = w / ar;
-  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: SNAP_W / w };
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: W / w };
 }
-function renderShot(fr, canvas) {
-  canvas.width = SNAP_W; canvas.height = SNAP_H;
+// 横長（シェア用）：まわりに仲間がいちばん多いサルを中心に、その近くの仲間がおさまるように寄る
+function frameWide(members) {
+  let near = members;
+  if (members.length) {
+    const r = 2.2 * members.reduce((a, m) => a + m.type.h, 0) / members.length; // 「近く」の距離＝サルの背丈の2.2倍
+    const around = (a) => members.filter((b) => Math.hypot(a.body.position.x - b.body.position.x, a.body.position.y - b.body.position.y) < r);
+    near = [];
+    for (const m of members) { const n = around(m); if (n.length > near.length) near = n; }
+  }
+  return frameShot(near, WIDE_W, WIDE_H);
+}
+function renderShot(fr, canvas, W = SNAP_W, H = SNAP_H) {
+  canvas.width = W; canvas.height = H;
   // 擬音（サル×k など）はサルにかぶるので描かない
-  drawScene(canvas.getContext("2d"), SNAP_W, SNAP_H, fr.s, SNAP_W / 2 - fr.cx * fr.s, SNAP_H / 2 - fr.cy * fr.s, { fx: false, leaves: false });
+  drawScene(canvas.getContext("2d"), W, H, fr.s, W / 2 - fr.cx * fr.s, H / 2 - fr.cy * fr.s, { fx: false, leaves: false });
 }
 
 // 木につながっているサルがいちばん多い瞬間を、全員に寄って撮っておく（同じ数なら新しいほう）。
@@ -41,12 +54,15 @@ export function takeSnap() {
   while (tn - G.recentGroups[0].t > 4000) G.recentGroups.shift();
   if (G.best && g.onTree < G.best.n) return;
   const canvas = G.best ? G.best.canvas : document.createElement("canvas");
-  renderShot(frameShot(G.monkeys.filter((x) => !x.held && attached(x))), canvas);
-  G.best = { canvas, n: g.onTree };
+  const wide = G.best ? G.best.wide : document.createElement("canvas");
+  const members = G.monkeys.filter((x) => !x.held && attached(x));
+  renderShot(frameShot(members), canvas);
+  renderShot(frameWide(members), wide, WIDE_W, WIDE_H);
+  G.best = { canvas, wide, n: g.onTree };
 }
 
 // ---------- 結果画面 ----------
-let resultText = "";
+let resultText = "", record = null, shareId = null;
 export async function finish() {
   G.state = "result"; G.engine.timing.timeScale = 1; setWindBanner("");
   const placed = G.monkeys.filter((m) => !m.held).length;
@@ -59,7 +75,9 @@ export async function finish() {
   document.getElementById("cardImg").src = card.toDataURL("image/png");
   document.getElementById("result").hidden = false;
   play("result");
-  onResult({ score: G.score, monkeys: placed, secs: Math.round(G.simT * 10) / 10 });
+  record = { score: G.score, monkeys: placed, secs: Math.round(G.simT * 10) / 10 };
+  shareId = null;
+  onResult(record);
 }
 
 function outlined(g, text, x, y, lw) {
@@ -122,7 +140,53 @@ function buildCard(n, total, best) {
   return c;
 }
 
-// Xでシェア：クリックの処理の中で同期的に開く（await の後だとポップアップが止められる）
-document.getElementById("share").addEventListener("click", () => {
-  window.open(`https://x.com/intent/post?text=${encodeURIComponent(resultText)}&url=${encodeURIComponent(URL)}`, "_blank", "noopener");
+// 1200×630：上の帯に題字と点数を小さく、その下にサルがいちばん集まっている所に寄った横長の絵
+function buildShare() {
+  const c = document.createElement("canvas");
+  c.width = SHARE_W; c.height = SHARE_H;
+  const g = c.getContext("2d");
+  g.fillStyle = "#EDE7D9"; g.fillRect(0, 0, SHARE_W, SHARE_TOP);
+  g.drawImage(G.best.wide, 0, SHARE_TOP);
+  g.fillStyle = "rgba(90,78,64,.5)"; g.fillRect(0, SHARE_TOP - 1, SHARE_W, 2);
+  g.textBaseline = "alphabetic"; g.fillStyle = COLOR.SUMI;
+  g.textAlign = "left"; g.font = `800 34px ${FONT}`; g.fillText(T.CARD_TITLE, 36, 52);
+  // 右に「スコア 31 点」（数字だけ大きく朱で）
+  const parts = [[`${T.CARD_SCORE} `, "700 28px", COLOR.USUZUMI], [String(G.score), "800 46px", COLOR.SHU], [` ${T.CARD_PT}`, "700 28px", COLOR.SUMI]];
+  const width = (t, f) => { g.font = `${f} ${FONT}`; return g.measureText(t).width; };
+  let x = SHARE_W - 36 - parts.reduce((a, [t, f]) => a + width(t, f), 0);
+  for (const [t, f, col] of parts) { const tw = width(t, f); g.fillStyle = col; g.fillText(t, x, 54); x += tw; }
+  g.fillStyle = g.createPattern(PAPER_TILE, "repeat"); g.fillRect(0, 0, SHARE_W, SHARE_H);
+  return c;
+}
+const jpeg = (c, q) => new Promise((ok) => c.toBlob(ok, "image/jpeg", q));
+
+// 結果画像を api/share に送り、共有ページの URL を返す（1回の結果につき1回だけ送る）。送れなければ null
+async function uploadShare() {
+  if (shareId) return shareId;
+  const c = buildShare();
+  let img = await jpeg(c, 0.8);
+  if (img && img.size > 190 * 1024) img = await jpeg(c, 0.6);
+  if (!img) return null;
+  const form = new FormData();
+  form.append("img", img, "share.jpg");
+  for (const k of ["score", "monkeys", "secs"]) form.append(k, String(record[k]));
+  form.append("lang", LANG);
+  const r = await fetch("api/share", { method: "POST", body: form });
+  if (r.status !== 201) return null;
+  shareId = (await r.json()).id;
+  return shareId;
+}
+
+// Xでシェア：ポップアップを止められないよう、押した直後に空のタブを開いてから投稿画面へ移す。
+// 画像を送れなかったら（手元・429 など）、ゲームの URL で投稿画面を開く
+const shareBtn = document.getElementById("share");
+shareBtn.addEventListener("click", async () => {
+  if (shareBtn.disabled) return;
+  shareBtn.disabled = true;
+  const w = window.open("", "_blank");
+  let url = URL;
+  try { const id = await uploadShare(); if (id) url = `https://waqk.jp/sarumo-kikara/s/${id}`; } catch {}
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(resultText)}&url=${encodeURIComponent(url)}`;
+  if (w) { w.opener = null; w.location.href = intent; } else window.open(intent, "_blank", "noopener");
+  shareBtn.disabled = false;
 });

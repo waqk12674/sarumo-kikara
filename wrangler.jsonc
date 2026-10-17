@@ -14,10 +14,16 @@
     "directory": ".",
     "binding": "ASSETS",
     // /sarumo-kikara/… は waqk.jp のルートから届くとき、先頭なしは workers.dev・wrangler dev のとき
-    "run_worker_first": ["/sarumo-kikara/api/*", "/sarumo-kikara/en", "/sarumo-kikara/en/", "/api/*", "/en", "/en/"]
+    "run_worker_first": ["/sarumo-kikara/api/*", "/sarumo-kikara/en", "/sarumo-kikara/en/", "/api/*", "/en", "/en/",
+      // 結果画像の共有ページと画像（/api/share は上の /sarumo-kikara/api/*・/api/* に含まれる）
+      "/sarumo-kikara/s/*", "/s/*"]
   },
   // ランキング（表は schema.sql）
   "d1_databases": [
     { "binding": "DB", "database_name": "sarumo-kikara-scores", "database_id": "6c5d4df5-2176-43a2-a84e-604aa6521841" }
-  ]
+  ],
+  // Xでシェアの結果画像（1200×630 の JPEG。キーは s/<id>.jpg。期限なし）
+  "r2_buckets": [{ "binding": "SHARES", "bucket_name": "sarumo-shares" }],
+  // /api/share の連打止め（IP ごとに1分5件）。namespace_id はアカウント内で一意の数字（ハブ 1001・1002、dashimaki 2610、katana 3001）
+  "ratelimits": [{ "name": "SHARE_RL", "namespace_id": "4001", "simple": { "limit": 5, "period": 60 } }]
 }
