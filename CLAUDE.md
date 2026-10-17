@@ -16,6 +16,7 @@
 - `assets/monkeys/`：サルのPNGと `monkeys.json`（形式は SPEC.md §4）。`assets/source/` は元画像で、公開しない
   - クモザル・ホエザル・リスザルの絵は `python tools/flip_tails.py` で、加工前の `assets/source/tails/*.png` から尻尾を下向きにして作る。この3枚の絵を直すときは加工前のほうを直して実行し直す
   - `tools/monkeys.html`：24種の一覧（つかむ点・ぶら下がれる点・重さ）。手元で http://localhost:8124/tools/monkeys.html を開く
+- `ogp.png`：OGP・バナー画像（1200×630。枝につかまって吠えるホエザル）。`python tools/make_ogp.py` で `assets/source/sheet_hanging.png` から作る（HG行書体を使うので Windows で実行）。直すときはスクリプトを直して実行し直す（2026-10-18）
 - `share/`：Xシェア用の中継ページ（予定。OGP画像を作るときに一緒に作る。今のシェアの URL は `https://waqk.jp/sarumo-kikara/`）
 - `mock/`：引き継ぎ時点のモック（参考用。公開しない）
 - 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す。テスト版の URL は https://sarumo-kikara.waqk12674.workers.dev/（GitHub の main に push すると Workers Builds で自動デプロイ）
@@ -53,6 +54,7 @@
 - 重さは見た目の大きさにそろえる：絵の墨の面積×倍率²（ニホンザル＝1）。当たり判定の面積ではない（SPEC.md §4）（2026-10-18）
 - 音（2026-10-17）：「よっと」「軽い」「重い」「落下」は運営者の録音、ほかは合成。SE は8場面（札・持ち上げ「よっと」／つかむ（重さ `GRAB.HEAVY`=1.05 以上は擬音「ガシッ」と重い音、それより軽いと擬音「ひょい」と軽い音）／鎖ボーナス（深いほど高い）／ずるっ／あっ（落下の音）／風の予告／ぽとっ／結果）。環境音（鳥のさえずりだけ）は最初のタップから小さくループ。風の音は風の予告のときだけで、ふだんは鳴らさない。BGM なし。ミュートボタンは右下（`skk_muted`）
 - ランキングは全期間 TOP10・1人（端末）1記録。結果画面で名前（1〜8文字）を入れて登録したときだけ載る。結果画面と画面下の札から見られる（SPEC.md §9b）（2026-10-17）
+- 遊び方は、開いたときにダイアログ（index.html の `#howto`。文面は運営者が書いたもの）で出し、「はじめる」まで止める。「ランキング」も開ける（閉じると遊び方に戻る）。詳しい遊び方は、ハブの https://waqk.jp/guide/sarumo-kikara へリンク（ハブに載せるときに作る。それまでは 404）。もう一度・やり直すでは出さない（2026-10-18）
 - 結果画面のボタンは WAQK 共通の4つ（Xでシェア・もう一度・ほかのゲーム・開発者を応援）。画像は長押しで保存（2026-10-17）
 
 ## 運営ルール（WAQK 共通）

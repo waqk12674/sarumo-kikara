@@ -86,4 +86,4 @@ $("rankBtn").addEventListener("click", () => {
   load($("rankDlgList"), $("rankDlgMsg"));
 });
 $("rankClose").addEventListener("click", () => dlg.close());
-dlg.addEventListener("close", () => { G.paused = false; });
+dlg.addEventListener("close", () => { G.paused = $("howto").open; }); // 遊び方から開いたときは、遊び方に戻るまで止めたまま

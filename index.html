@@ -10,6 +10,11 @@
 <meta property="og:title" content="サルも木から落ちぬん">
 <meta property="og:description" content="サルの下にサルをつなげて、鎖を伸ばせ。1匹でも落ちたら終わり。">
 <meta property="og:url" content="https://waqk.jp/sarumo-kikara/">
+<!-- ogp.png は python tools/make_ogp.py で作る -->
+<meta property="og:image" content="https://waqk.jp/sarumo-kikara/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap">
@@ -88,12 +93,6 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px}
 .chip[aria-expanded="true"]{background:var(--sumi);color:var(--kinari)}
 .bottom .right{display:flex;gap:8px}
-.hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 58px);
-  width:max-content;max-width:calc(100% - 32px);background:rgba(246,240,226,.92);border:1.5px solid var(--line);color:var(--sumi);font-size:13px;font-weight:700;
-  padding:8px 14px;border-radius:10px;text-align:center;line-height:1.6;z-index:2;transition:opacity .5s;pointer-events:none}
-.hint h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.hint p{margin:0}
-.hint.fade{opacity:0}
 .wind{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--hud-h,120px) + 6px);z-index:2;pointer-events:none;
   background:rgba(246,240,226,.92);border:1.5px solid var(--line);border-radius:999px;padding:4px 16px;font-weight:800;font-size:15px;letter-spacing:.2em;
   transition:opacity .4s}
@@ -134,8 +133,19 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .rankDialog::backdrop{background:var(--scrim)}
 .rankDialog p{margin:6px 0;font-size:12px;color:var(--usuzumi);text-align:center}
 .rankDialog .pill{display:block;margin:10px auto 0;border:1.5px solid var(--line);border-radius:999px;padding:8px 22px;font-weight:700;background:rgba(240,233,219,.88)}
+.howto{width:min(360px,calc(100% - 32px));box-sizing:border-box;max-height:calc(100% - 32px);overflow:auto;background:var(--kinari);color:var(--sumi);
+  border:1.5px solid var(--line);border-radius:14px;padding:16px 16px 18px;font-family:var(--font-mincho)}
+.howto::backdrop{background:var(--scrim)}
+.howto h2{margin:0 0 4px;font-size:18px;font-weight:800;text-align:center;letter-spacing:.2em}
+.howto .lead{margin:0 0 10px;font-size:14px;font-weight:700;text-align:center}
+.howto ol{margin:0;padding:0 0 0 1.4em;font-size:14px;line-height:1.7;display:flex;flex-direction:column;gap:6px}
+.howto b{color:var(--shu)}
+.howto .more{margin:12px 0 0;font-size:13px;line-height:1.7;text-align:center;color:var(--usuzumi)}
+.howto .more a{color:var(--shu);font-weight:700}
+.howto .acts{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.howto .pill{border:1.5px solid var(--line);border-radius:999px;padding:10px 20px;font-size:15px;font-weight:700;background:rgba(240,233,219,.88);letter-spacing:.06em}
+.howto .go{border-color:var(--shu);background:var(--shu);color:var(--kinari);font-weight:800;padding:10px 30px}
 #boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 16px;text-align:center}
-@media (prefers-reduced-motion:reduce){.hint{transition:none}}
 </style>
 </head>
 <body>
@@ -153,11 +163,21 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
   </div>
 </header>
 
-<!-- 遊び方（最初の数匹を置くと消える） -->
-<section class="hint" id="hint">
-  <h2>遊び方</h2>
-  <p>サルの下にサルをつなげるほど高得点（鎖ボーナス）。<br>右上の札からサルをひっぱってきて、はなす。<br>手やしっぽが枝・足・しっぽにふれると、ひっかかる。<br>ぶら下がると疲れる。置いたサルは持って置きなおせる。</p>
-</section>
+<!-- 遊び方：開いたときに出し、「はじめる」まで止めておく（src/main.js）。本文として HTML に書く -->
+<dialog class="howto" id="howto" aria-labelledby="howtoTitle">
+  <h2 id="howtoTitle">ざっくりな遊び方</h2>
+  <p class="lead">～サルをつなげてハイスコアをねらおう！～</p>
+  <ol>
+    <li>右上からサルを<b>ドラッグ</b></li>
+    <li>以下の方法でサルを枝にひっかける<br>・枝の上で<b>指を離す</b><br>・サルの体が赤くなるところで<b>指を離す</b></li>
+    <li>サルの下にもサルをひっかけられる</li>
+    <li>場所が気に入らなければひっかけ直す</li>
+    <li>得点がはいるのは新たなサルだけ</li>
+    <li>サルが地面につくとゲームオーバー</li>
+  </ol>
+  <p class="more">詳しいあそびかたは以下ページを参照<br><a href="https://waqk.jp/guide/sarumo-kikara" target="_blank" rel="noopener">サルも木から落ちぬん の遊び方 →</a></p>
+  <div class="acts"><button class="pill go" id="howtoGo">はじめる</button><button class="pill" id="howtoRank">ランキング</button></div>
+</dialog>
 <div class="wind off" id="wind" aria-live="polite"></div>
 <pre class="dbg" id="dbgInfo" hidden></pre>
 

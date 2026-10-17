@@ -34,9 +34,9 @@ export const G = {
   state: "play",                      // play → over（スロー）→ result
   simT: 0, overAt: 0, canSpawnAt: 0, firstGrabAt: 0,
   nextType: null, lastType: null,
-  score: 0, finalCount: 0, placedSinceHint: 0,
+  score: 0, finalCount: 0,
   wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 },
-  dragging: false, paused: false, // paused：ランキングを開いているあいだ止める
+  dragging: false, paused: false, // paused：遊び方・ランキングを開いているあいだ止める
   pops: [], rings: [], sparks: [], flash: null, shake: 0,
   best: null, recentGroups: [], // 結果画像の候補（サルがいちばん多い瞬間）と、直前4秒の群れの大きさ
   view: { s: 1, ox: 0, oy: 0 }, dpr: 1,

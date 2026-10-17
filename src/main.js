@@ -15,7 +15,7 @@ import "./ranking.js";
 const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
 
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
-const hint = document.getElementById("hint");
+const howto = document.getElementById("howto");
 
 // ---------- 世界をつくる ----------
 function init() {
@@ -38,12 +38,11 @@ function init() {
   });
   Object.assign(G, {
     monkeys: [], held: null, state: "play", canSpawnAt: now() + 200, simT: 0, firstGrabAt: 0,
-    pops: [], rings: [], sparks: [], flash: null, score: 0, best: null, recentGroups: [], shake: 0, dragging: false, placedSinceHint: 0,
+    pops: [], rings: [], sparks: [], flash: null, score: 0, best: null, recentGroups: [], shake: 0, dragging: false,
     wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 }, lastType: null,
   });
   clearInput(); setWindBanner("");
   G.nextType = randType(); updateNext(); updateHud();
-  hint.classList.remove("fade");
   document.getElementById("result").hidden = true;
   fitCam(true);
 }
@@ -129,6 +128,10 @@ function frame(tn) {
   requestAnimationFrame(frame);
 }
 
+document.getElementById("howtoGo").addEventListener("click", () => howto.close());
+document.getElementById("howtoRank").addEventListener("click", () => document.getElementById("rankBtn").click()); // 遊び方の上に重ねて開く
+howto.addEventListener("close", () => { G.paused = false; });
+
 // ---------- 起動 ----------
 const boot = document.getElementById("boot");
 loadSounds();
@@ -136,6 +139,7 @@ loadMonkeys().then(() => {
   boot.remove();
   init(); resize();
   addEventListener("resize", resize);
+  G.paused = true; howto.showModal(); // 遊び方を出して、「はじめる」まで止めておく（そのタップで環境音も鳴りはじめる）
   requestAnimationFrame(frame);
 }, (err) => {
   console.error(err);

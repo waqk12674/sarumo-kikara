@@ -198,7 +198,6 @@ export function autoGrab() {
       const p = m.body.position, py = chainDepth(m) >= 2 ? p.y + m.type.h * 0.35 : p.y - 60;
       if (isHeavy(m)) { pop(p.x, py, T.POP_GASHI, 30, true); G.shake = Math.max(G.shake, 4); }
       else pop(p.x, py, T.POP_HOI, 22);
-      if (++G.placedSinceHint >= 3) document.getElementById("hint").classList.add("fade");
     }
   }
 }
