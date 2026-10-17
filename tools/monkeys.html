@@ -27,7 +27,7 @@
   <i style="background:#2E86C1"></i>ぶら下がれる点（仲間がつかめる）
   <i style="background:#27AE60"></i>汗の位置の目安（head）
   ／ 薄い灰色の線＝当たり判定（hull）
-  ／ 重さはニホンザル＝1（当たり判定の面積で比べる。ゲームと同じ）。<span class="heavy">1.05 以上は「重い」</span>（ガシッ）
+  ／ 重さはニホンザル＝1（絵の墨の面積×種ごとの倍率²で比べる。ゲームと同じ）。<span class="heavy">1.05 以上は「重い」</span>（ガシッ）
 </div>
 <div class="bar">並べ方：<button data-sort="json">データの順</button><button data-sort="weight">重さの順</button></div>
 <div class="grid" id="grid"></div>
@@ -35,20 +35,29 @@
 import { CONFIG } from "../src/config.js";
 const KIND = { hand: "手", foot: "足", tail: "尻尾" };
 const HEAVY = 1.05, SCALE = 1.6; // 表示の倍率
-const area = (h) => Math.abs(h.reduce((s, [x, y], i) => { const [x2, y2] = h[(i + 1) % h.length]; return s + x * y2 - x2 * y; }, 0)) / 2;
+// 絵の墨の面積（src/monkeys.js の inkArea と同じ）
+const ink = (img, d) => {
+  const w = img.naturalWidth, h = img.naturalHeight, c = Object.assign(document.createElement("canvas"), { width: w, height: h }).getContext("2d");
+  c.drawImage(img, 0, 0);
+  const a = c.getImageData(0, 0, w, h).data;
+  let n = 0;
+  for (let i = 3; i < a.length; i += 4) if (a[i] > 128) n++;
+  return (n / (w * h)) * d.w * d.h;
+};
 const count = (pts, key) => {
   const c = {};
   for (const p of pts) if (p[key]) c[KIND[p.kind]] = (c[KIND[p.kind]] || 0) + 1;
   return Object.entries(c).map(([k, n]) => k + n).join("・") || "なし";
 };
 fetch("../assets/monkeys/monkeys.json").then((r) => r.json()).then(async (data) => {
-  const ref = area(data.find((d) => d.id === "nihonzaru").hull);
   const list = await Promise.all(data.map((d, i) => new Promise((ok) => {
     const img = new Image();
     const s = CONFIG.SPECIES_SIZE[d.id] || 1; // 種ごとの倍率（重さは面積なので2乗で効く）
-    img.onload = () => ok({ ...d, i, img, s, weight: (area(d.hull) * s * s) / ref });
+    img.onload = () => ok({ ...d, i, img, s, ink: ink(img, d) * s * s });
     img.src = "../assets/monkeys/" + d.file;
   })));
+  const ref = list.find((d) => d.id === "nihonzaru").ink;
+  for (const d of list) d.weight = d.ink / ref;
   const grid = document.getElementById("grid");
   const show = (order) => {
     grid.innerHTML = "";

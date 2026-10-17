@@ -17,10 +17,23 @@ export async function loadMonkeys() {
     TYPES.push({ id: d.id, name: d.name, img, d, tint: null, sil: null });
   }
   await Promise.all(ready);
+  for (const t of TYPES) t.ink = inkArea(t);
+}
+
+// 絵の墨の面積（大きさ1倍の世界座標で）。重さはこれで決める（見た目の大きさで重さが分かるように）
+function inkArea(t) {
+  const { naturalWidth: w, naturalHeight: h } = t.img, cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  const c = cv.getContext("2d", { willReadFrequently: true });
+  c.drawImage(t.img, 0, 0);
+  const a = c.getImageData(0, 0, w, h).data;
+  let n = 0;
+  for (let i = 3; i < a.length; i += 4) if (a[i] > 128) n++;
+  return (n / (w * h)) * t.d.w * t.d.h;
 }
 
 // サルの大きさ（木に対する倍率）。絵・当たり判定・手足の位置をまとめて拡大する。
-// 種ごとの倍率 SPECIES_SIZE も掛ける（重さは当たり判定の面積で決まるので、大きいほど重く、握力も強くなる）
+// 種ごとの倍率 SPECIES_SIZE も掛ける。重さ wt（ニホンザル＝1）は絵の墨の面積に比例（大きく見えるほど重く、握力も強い）
 export function applyScale(k) {
   G.SZ = k;
   for (const t of TYPES) {
@@ -32,6 +45,7 @@ export function applyScale(k) {
   }
   const ref = TYPES.find((t) => t.id === "nihonzaru") || TYPES[0];
   G.M0 = Bodies.fromVertices(0, 0, [ref.verts]).mass;
+  for (const t of TYPES) t.wt = (t.ink * t.k * t.k) / (ref.ink * ref.k * ref.k);
 }
 
 // 24種からランダム（直前と同じ種は出さない）
@@ -49,6 +63,7 @@ export function makeMonkey(type, x, y) {
   });
   const shift = Vertices.centre(type.verts);
   Body.setPosition(b, { x, y });
+  Body.setMass(b, G.M0 * type.wt);
   const n = type.points.length;
   const m = {
     type, body: b, shift, grabs: Array(n).fill(null), hangBy: Array(n).fill(null), held: false, releasedAt: 0,
