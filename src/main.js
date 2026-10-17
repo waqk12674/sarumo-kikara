@@ -37,7 +37,7 @@ function init() {
   });
   Object.assign(G, {
     monkeys: [], held: null, state: "play", canSpawnAt: now() + 200, simT: 0, firstGrabAt: 0,
-    pops: [], rings: [], score: 0, snaps: [], fallPlan: null, fallShot: null, shake: 0, dragging: false, placedSinceHint: 0,
+    pops: [], rings: [], sparks: [], flash: null, score: 0, snaps: [], fallPlan: null, fallShot: null, shake: 0, dragging: false, placedSinceHint: 0,
     wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 }, lastType: null,
   });
   clearInput(); setWindBanner("");

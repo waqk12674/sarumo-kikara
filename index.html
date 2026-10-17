@@ -51,10 +51,12 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .cnt{transition:transform .2s}
 .cnt.bump{animation:bump .35s ease-out}
 .cnt.bumpBig{animation:bumpBig .6s ease-out}
-.cnt.bumpBig b{color:var(--shu)}
+.cnt.bumpBig b,.cnt.bumpHuge b{color:var(--shu)}
+.cnt.bumpHuge{animation:bumpHuge .9s ease-out}
 @keyframes bump{30%{transform:scale(1.12)}100%{transform:scale(1)}}
 @keyframes bumpBig{20%{transform:scale(1.35) rotate(-4deg)}45%{transform:scale(.95) rotate(2deg)}100%{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.cnt.bump,.cnt.bumpBig{animation:none}}
+@keyframes bumpHuge{15%{transform:scale(1.65) rotate(-7deg)}35%{transform:scale(.9) rotate(4deg)}55%{transform:scale(1.18) rotate(-2deg)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cnt.bump,.cnt.bumpBig,.cnt.bumpHuge{animation:none}}
 .cnt .sub{font-size:10px;color:var(--usuzumi);font-weight:700;font-variant-numeric:tabular-nums}
 .next{cursor:grab;touch-action:none;border-style:dashed;border-color:var(--shu);transition:transform .15s}
 .next:hover{transform:translateY(-1px)}

@@ -41,22 +41,24 @@ export function findTarget(m, i, range) {
     const fi = m.grabs.indexOf(first), span = dist(m.type.points[fi], m.type.points[i]), fp = grabWorld(m, fi);
     fit = (q) => Math.abs(dist(q, fp) - span) <= C.SECOND_FIT;
   }
+  // 木の上で、ほかのサルの手がすでにある場所はつかめない（GAP×大きさ だけ空ける）
+  const taken = [];
+  for (const o of G.monkeys) {
+    if (o === m) continue;
+    o.grabs.forEach((g) => { if (g && g.kind === "tree") taken.push(Vector.add(g.piece.body.position, Vector.rotate(g.local, g.piece.body.angle))); });
+  }
+  const free = (q, extra = 0) => taken.every((t) => dist(t, q) >= C.GAP * G.SZ + extra);
   if (onlyTree) {
-    // 枝なら「1本目のつかみ位置＋今の手と手のずれ」ぴったりの位置に添える
+    // 枝なら「1本目のつかみ位置＋今の手と手のずれ」ぴったりの位置に添える。ほかのサルの手のそばには添えない
     const fi = m.grabs.indexOf(first), q = Vector.add(grabWorld(m, fi), Vector.sub(hp, pointW(m, fi)));
     const pc = first.piece, c0 = closest(q, pc.a, pc.b);
-    if (dist(q, c0) - pc.t / 2 <= C.SECOND_ON_BRANCH && dist(hp, q) < range && dist(c0, pc.a) >= (pc.seg ? 0 : C.BASE_CLEAR))
+    if (dist(q, c0) - pc.t / 2 <= C.SECOND_ON_BRANCH && dist(hp, q) < range && dist(c0, pc.a) >= (pc.seg ? 0 : C.BASE_CLEAR) && free(q))
       return { kind: "tree", piece: pc, point: q, second: true };
     return null;
   }
   if (!onlyMon) {
-    // 木の上で、ほかのサルの手がすでにある場所はつかめない。少しずらして空いているところを探す
-    const taken = [];
-    for (const o of G.monkeys) {
-      if (o === m) continue;
-      o.grabs.forEach((g) => { if (g && g.kind === "tree") taken.push(Vector.add(g.piece.body.position, Vector.rotate(g.local, g.piece.body.angle))); });
-    }
-    const free = (q) => taken.every((t) => dist(t, q) >= C.GAP * G.SZ);
+    // 1本目の手は、あとから添える2本目の手（手と手の幅 span）のぶんも空けた場所を探す。少しずらして空きを探す
+    const span = Math.max(0, ...m.type.points.filter((pt, j) => pt.grab && j !== i).map((pt) => dist(pt, m.type.points[i])));
     for (const p of G.pieces) {
       if (p.kind !== "branch") continue; // 幹はつかめない。枝だけ
       const q0 = closest(mid, p.a, p.b), len = dist(p.a, p.b), ux = (p.b.x - p.a.x) / len, uy = (p.b.y - p.a.y) / len;
@@ -66,7 +68,7 @@ export function findTarget(m, i, range) {
         if (t < (p.seg ? 0 : C.BASE_CLEAR) || t > len) continue; // 幹のそばの付け根はつかめない（根元の区間だけ）
         const q = { x: p.a.x + ux * t, y: p.a.y + uy * t }, d = reach(q) - p.t / 2;
         if (d >= bd) continue;
-        if (!free(q) || !fit(q)) continue;
+        if (!free(q, span) || !fit(q)) continue;
         bd = d; best = { kind: "tree", piece: p, point: q };
         break;
       }
@@ -107,15 +109,25 @@ function scoreNew(m) {
   m.scored = true; G.score += k;
   const p = m.body.position, top = p.y - m.type.h * 0.55;
   if (k >= 2) {
-    G.rings.push({ x: p.x, y: top + m.type.h * 0.2, t: now(), k });
-    pop(p.x, top - 6 * G.SZ, fill(T.CHAIN, { k }), 30 + Math.min(k, 8) * 2, true, COLOR.SHU);
-    pop(p.x + 26 * G.SZ, top - 38 * G.SZ, fill(T.PLUS, { k }), 26, false, COLOR.SHU);
-    G.shake = Math.min(14, 4 + k * 1.5);
+    // 鎖ボーナス：深いほど、輪が増えて大きく、紙吹雪が多く、揺れが強く、文字が大きい。深ければ画面も光る
+    const X = cfg.COMBO, kk = Math.min(k, X.TEXT_MAX_K), cy = top + m.type.h * 0.2, tn = now();
+    const nr = Math.min(X.RINGS_MAX, 1 + Math.floor((k - 2) / X.RINGS_EVERY));
+    for (let r = 0; r < nr; r++) G.rings.push({ x: p.x, y: cy, t: tn + r * 110, k });
+    const ns = Math.min(X.SPARKS_MAX, k * X.SPARKS_PER), cols = ["181,101,90", "201,160,78", "61,56,51", "231,196,150"];
+    for (let s = 0; s < ns; s++) {
+      G.sparks.push({ x: p.x, y: cy, a: Math.random() * Math.PI * 2, v: (110 + Math.random() * 190) * (0.8 + kk * 0.07),
+        t: tn + Math.random() * 80, life: 800 + Math.random() * 700, c: cols[s % cols.length], sz: 7 + Math.random() * 6, ph: Math.random() * 6 });
+    }
+    if (k >= X.FLASH_FROM) G.flash = { t: tn, a: Math.min(0.5, 0.15 + (k - X.FLASH_FROM) * 0.05) };
+    pop(p.x, top - 6 * G.SZ, fill(T.CHAIN, { k }), 30 + kk * 3, true, COLOR.SHU);
+    pop(p.x + 26 * G.SZ, top - 38 * G.SZ, fill(T.PLUS, { k }), 26 + kk * 1.5, false, COLOR.SHU);
+    G.shake = Math.min(X.SHAKE_MAX, X.SHAKE_BASE + k * X.SHAKE_PER);
     play("chain", Math.min(cfg.AUDIO.CHAIN_RATE_MAX, 1 + cfg.AUDIO.CHAIN_RATE_STEP * (k - 2)));
   } else pop(p.x, top - 10 * G.SZ, fill(T.PLUS, { k }), 22, false, COLOR.SUMI);
   scoreEl.textContent = G.score;
   const box = scoreEl.closest(".cnt");
-  box.classList.remove("bump", "bumpBig"); void box.offsetWidth; box.classList.add(k >= 2 ? "bumpBig" : "bump");
+  box.classList.remove("bump", "bumpBig", "bumpHuge"); void box.offsetWidth;
+  box.classList.add(k >= cfg.COMBO.FLASH_FROM ? "bumpHuge" : k >= 2 ? "bumpBig" : "bump");
 }
 
 function grab(m, i, t) {

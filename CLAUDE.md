@@ -16,7 +16,7 @@
 - `assets/monkeys/`：サルのPNGと `monkeys.json`（形式は SPEC.md §4）。`assets/source/` は元画像で、公開しない
 - `share/`：Xシェア用の中継ページ（予定。OGP画像を作るときに一緒に作る。今のシェアの URL は `https://waqk.jp/sarumo-kikara/`）
 - `mock/`：引き継ぎ時点のモック（参考用。公開しない）
-- 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す
+- 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す。テスト版の URL は https://sarumo-kikara.waqk12674.workers.dev/（GitHub の main に push すると Workers Builds で自動デプロイ）
 
 ## 確認のしかた
 
@@ -38,6 +38,9 @@
 - 尻尾でつかめるのはクモザル・ホエザル・オマキザルだけ
 - 見た目は淡い水彩と墨の和風。原色は使わない。サルは白黒のペン画
 - 結果画像は「落ちはじめの瞬間」に寄る（SPEC.md §9）
+- 枝は左右に1本ずつ（根元から斜め→先が水平）。ほかの形は `?tree=` で比べられる（SPEC.md §3）（2026-10-17）
+- サルどうしはなるべく重ねない：枝の上では2本目の手のぶんも間をあける（押し合う力を強くしても重なりは減らず、揺れが増えた）（2026-10-17）
+- 鎖ボーナスは深いほど派手（輪・紙吹雪・揺れ・文字・画面の光り）。調整は `COMBO`（2026-10-17）
 - 風で木はほとんどしならせない（`TREE.WIND_BEND`=0.1。しなりすぎるとサルどうしが重なって遊びにくい）（2026-10-17）
 - 操作は「ドラッグ＋自動でつかむ」に固定。モックの「落とす」「ガシッ」は消した。調整パネルは `?debug=1` のときだけ（2026-10-17）
 - 調整値の初期値はモックのまま（握力5・疲れやすさ1・風1・サルの大きさ1.5・ふんばり1・つかめる距離16）（2026-10-17）

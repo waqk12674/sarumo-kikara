@@ -37,7 +37,7 @@ export const G = {
   score: 0, finalCount: 0, placedSinceHint: 0,
   wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 },
   dragging: false,
-  pops: [], rings: [], shake: 0,
+  pops: [], rings: [], sparks: [], flash: null, shake: 0,
   fallPlan: null, fallShot: null, snaps: [],
   view: { s: 1, ox: 0, oy: 0 }, dpr: 1,
 };

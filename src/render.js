@@ -1,5 +1,5 @@
 // 描画：淡い水彩と墨（背景・木・サル・擬音・輪・舞う葉・風の筋・和紙）
-import { G, P, T, COLOR, FONT, ink } from "./state.js";
+import { G, P, T, cfg, COLOR, FONT, ink } from "./state.js";
 import { rng, now, fill } from "./util.js";
 import { BR, GROUND_Y, TRUNK_X, trunkPt, trunkTilt, trunkW, branchPts } from "./tree.js";
 import { pointW } from "./monkeys.js";
@@ -151,16 +151,19 @@ function drawMonkey(c, m, glow) {
   }
   c.drawImage(t.img, ox, oy, t.w, t.h);
   if (v.flush > 0.03) { c.globalAlpha = Math.min(0.9, v.flush); c.drawImage(tinted(t), ox, oy, t.w, t.h); c.globalAlpha = 1; }
+  // 焦り汗（漫画ふう）：頭の横に、先を上へ向けて頭の側へ少し傾けたしずくを、間をあけて扇形に並べる。
+  // 飛ばさず、その場でぴくぴく揺れる
   if (v.sweat > 0.05) {
-    const hx = t.head.x - m.shift.x, hy = t.head.y - m.shift.y;
-    const n = v.sweat > 0.6 ? 4 : v.sweat > 0.3 ? 3 : 2;
+    const hx = t.head.x - m.shift.x, hy = t.head.y - m.shift.y + 9 * G.SZ; // head は頭の上寄りなので、こめかみの高さまで下げる
+    const side = hx >= 0 ? 1 : -1; // 頭が体の中心より右なら右側に出す
+    const n = v.sweat > 0.6 ? 3 : v.sweat > 0.3 ? 2 : 1;
+    c.globalAlpha = Math.min(1, v.sweat * 2);
     for (let k = 0; k < n; k++) {
-      const side = k % 2 ? 1 : -1, ph = (tn * 1.4 + k * 0.37) % 1;
-      const a = -Math.PI / 2 + side * (0.7 + 0.25 * (k >> 1));
-      const rr = (16 + ph * 18) * G.SZ;
-      const x = hx + Math.cos(a) * rr, y = hy + Math.sin(a) * rr + ph * 8;
-      c.globalAlpha = Math.min(1, v.sweat * 1.5) * (1 - ph * 0.6);
-      drawDrop(c, x, y, (4.8 + v.sweat * 1.2) * G.SZ, side * 0.6);
+      const a = -0.9 + k * 0.75; // こめかみの上から横・少し下へ（右側の角度。左側は鏡写し）
+      const twitch = Math.sin(tn * 9 + k * 1.7) * 1.2 * G.SZ;
+      const rr = 19 * G.SZ + twitch;
+      const x = hx + side * Math.cos(a) * rr, y = hy + Math.sin(a) * rr;
+      drawDrop(c, x, y, (3.8 + v.sweat * 1.2 - k * 0.4) * G.SZ, -side * (0.45 + k * 0.12)); // 先を上へ、頭の側へ傾ける
     }
     c.globalAlpha = 1;
   }
@@ -169,7 +172,8 @@ function drawMonkey(c, m, glow) {
 function drawDrop(c, x, y, s, rot) {
   c.save(); c.translate(x, y); c.rotate(rot);
   c.beginPath(); c.moveTo(0, -s * 1.8); c.quadraticCurveTo(s * 1.1, -s * 0.2, s, s * 0.4); c.arc(0, s * 0.4, s, 0, Math.PI); c.quadraticCurveTo(-s * 1.1, -s * 0.2, 0, -s * 1.8); c.closePath();
-  c.fillStyle = "rgba(214,230,234,.95)"; c.fill(); c.strokeStyle = ink(0.85); c.lineWidth = 1.1; c.stroke();
+  c.fillStyle = "rgba(156,201,211,.95)"; c.fill(); c.strokeStyle = ink(0.9); c.lineWidth = 1.3; c.stroke();
+  c.fillStyle = "rgba(250,252,250,.9)"; c.beginPath(); c.ellipse(-s * 0.35, s * 0.25, s * 0.22, s * 0.38, 0.3, 0, Math.PI * 2); c.fill(); // ハイライト
   c.restore();
 }
 
@@ -234,6 +238,12 @@ export function drawScene(c, cw, ch, s, ox, oy, opt) {
   c.setTransform(1, 0, 0, 1, 0, 0);
   if (opt.leaves !== false) drawAir(c, cw, ch, Math.max(1, cw / 700));
   c.fillStyle = c.createPattern(PAPER_TILE, "repeat"); c.fillRect(0, 0, cw, ch);
+  // 深い鎖ボーナスで、画面が一瞬白く光る
+  if (opt.fx && G.flash) {
+    const a = (now() - G.flash.t) / 280;
+    if (a >= 1) G.flash = null;
+    else { c.fillStyle = `rgba(250,246,236,${G.flash.a * (1 - a)})`; c.fillRect(0, 0, cw, ch); }
+  }
 }
 
 // 運んでいるサルの、つかめる範囲とつかむ先
@@ -254,6 +264,7 @@ function drawFx(c) {
     });
   }
   drawRings(c, u);
+  drawSparks(c, u);
   drawPops(c, u);
 }
 // 鎖ボーナスの朱の輪と筆のはね
@@ -261,9 +272,10 @@ function drawRings(c, u) {
   const tn = now();
   G.rings = G.rings.filter((r) => tn - r.t < 750);
   for (const r of G.rings) {
-    const a = (tn - r.t) / 750, e = 1 - Math.pow(1 - a, 3), R = (18 + 60 * e + r.k * 4) * u;
+    if (tn < r.t) continue; // 重ねる輪は少し遅れて広がる
+    const a = (tn - r.t) / 750, e = 1 - Math.pow(1 - a, 3), R = (18 + 60 * e + Math.min(r.k, 12) * cfg.COMBO.RING_GROW) * u;
     c.save(); c.globalAlpha = 1 - a;
-    c.strokeStyle = COLOR.SHU; c.lineWidth = (6 - 4 * a) * u;
+    c.strokeStyle = COLOR.SHU; c.lineWidth = (6 + Math.min(r.k, 10) * 0.5) * (1 - a * 0.7) * u;
     c.beginPath(); c.arc(r.x, r.y, R, 0, Math.PI * 2); c.stroke();
     c.lineCap = "round"; c.lineWidth = (4 - 2.5 * a) * u;
     const n = 8 + Math.min(r.k, 6) * 2;
@@ -271,6 +283,20 @@ function drawRings(c, u) {
       const an = (k / n) * Math.PI * 2 + r.k;
       c.beginPath(); c.moveTo(r.x + Math.cos(an) * R * 1.1, r.y + Math.sin(an) * R * 1.1); c.lineTo(r.x + Math.cos(an) * R * 1.45, r.y + Math.sin(an) * R * 1.45); c.stroke();
     }
+    c.restore();
+  }
+}
+// 鎖ボーナスの紙吹雪（朱・黄土・墨・肌色の紙片が飛び散って落ちる。くるくる裏返る）
+function drawSparks(c, u) {
+  const tn = now();
+  G.sparks = G.sparks.filter((s) => tn - s.t < s.life);
+  for (const s of G.sparks) {
+    const el = (tn - s.t) / 1000;
+    if (el < 0) continue;
+    const a = (tn - s.t) / s.life;
+    const x = s.x + Math.cos(s.a) * s.v * el * u, y = s.y + (Math.sin(s.a) * s.v * el + 150 * el * el) * u; // 速さ・重力は画面のピクセルで
+    c.save(); c.globalAlpha = 1 - a * a; c.translate(x, y); c.rotate(s.ph + el * 7); c.scale(1, Math.cos(s.ph + el * 12));
+    c.fillStyle = `rgb(${s.c})`; c.fillRect((-s.sz / 2) * u, (-s.sz * 0.3) * u, s.sz * u, s.sz * 0.6 * u);
     c.restore();
   }
 }
