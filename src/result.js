@@ -1,0 +1,140 @@
+// 結果：落ちはじめの瞬間を撮っておき、結果画像をつくる（SPEC.md §9）
+import { G, cfg, T, COLOR, FONT } from "./state.js";
+import { now, fill } from "./util.js";
+import { blob, drawScene, PAPER_TILE } from "./render.js";
+import { componentOf, attached, groups } from "./grab.js";
+import { setWindBanner } from "./wind.js";
+
+const CANOPY = cfg.CAMERA.CANOPY;
+const SNAP_W = 738, SNAP_H = 1312;
+const URL = "https://waqk.jp/sarumo-kikara/";
+
+// 群れに寄って撮る。fallers があれば、落ちはじめの頭と手が下のふちにぎりぎり入るようにする
+function frameShot(members, fallers, extra) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const m of members) {
+    const p = m.body.position, t = m.type;
+    x0 = Math.min(x0, p.x - t.w * 0.6 - 8); x1 = Math.max(x1, p.x + t.w * 0.6 + 8);
+    y0 = Math.min(y0, p.y - t.h * 0.72); y1 = Math.max(y1, p.y + t.h * 0.55);
+  }
+  if (!members.length) {
+    if (fallers && fallers.length) { const p = fallers[0].body.position; x0 = p.x - 80; x1 = p.x + 80; y0 = p.y - 200; y1 = p.y; }
+    else { x0 = CANOPY.x0; x1 = CANOPY.x1; y0 = CANOPY.y0; y1 = CANOPY.y1; } // まだ誰もいない：木の上のほう
+  }
+  if (extra) for (const q of extra) { x0 = Math.min(x0, q.x - 30); x1 = Math.max(x1, q.x + 30); y0 = Math.min(y0, q.y - 40); }
+  if (fallers && fallers.length) {
+    const f = fallers.reduce((a, b) => (a.body.position.y < b.body.position.y ? a : b)); // いちばん上で落ちているサル
+    const p = f.body.position, t = f.type, top = p.y - t.h * 0.6;
+    x0 = Math.min(x0, p.x - t.w * 0.5); x1 = Math.max(x1, p.x + t.w * 0.5);
+    y1 = Math.max(y1, top + t.h * 0.38); // 頭と手のあたりまで
+  }
+  const mx = (x1 - x0) * 0.08;
+  x0 -= mx; x1 += mx; y0 -= (y1 - y0) * 0.05;
+  let w = x1 - x0, h = Math.max(y1 - y0, 280);
+  const ar = SNAP_W / SNAP_H;
+  if (w / h < ar) w = h * ar; else h = w / ar;
+  return { cx: (x0 + x1) / 2, cy: y1 - h / 2, s: SNAP_W / w }; // 下端をそろえる
+}
+function renderShot(fr, canvas) {
+  canvas.width = SNAP_W; canvas.height = SNAP_H;
+  drawScene(canvas.getContext("2d"), SNAP_W, SNAP_H, fr.s, SNAP_W / 2 - fr.cx * fr.s, SNAP_H / 2 - fr.cy * fr.s, { fx: false, leaves: false, popScale: 1.7 / fr.s });
+}
+
+// 木にいるサル全員に寄った絵を撮っておく（手を離す前に崩れたときに使う）
+export function takeSnap() {
+  const g = groups();
+  const rec = G.snaps.length >= 10 ? G.snaps.shift() : { canvas: document.createElement("canvas") };
+  renderShot(frameShot(G.monkeys.filter((x) => !x.held && attached(x)), null), rec.canvas);
+  rec.size = g.bestOn; rec.t = now();
+  G.snaps.push(rec);
+}
+
+// 手がはなれて落ちはじめた瞬間を撮る
+export function takeFallShot() {
+  const { m, from, hand } = G.fallPlan;
+  G.fallPlan = null;
+  const fallers = componentOf(m).filter((x) => !attached(x)), fs = new Set(fallers);
+  const others = G.monkeys.filter((x) => !x.held && !fs.has(x) && attached(x)); // 木に残っているサルは全員入れる
+  const canvas = document.createElement("canvas");
+  if (from && !from.held && attached(from)) {
+    // 群れの一部が落ちた：木に残ったサル全員に寄り、落ちはじめを下のふちにぎりぎり入れる
+    renderShot(frameShot(others, fallers.length ? fallers : [m]), canvas);
+  } else {
+    // 群れごと落ちた：落ちはじめた群れ全体、ほかのサル、さっきまでつかんでいた場所を入れる
+    renderShot(frameShot([...(fallers.length ? fallers : [m]), ...others], null, hand ? [hand] : null), canvas);
+  }
+  G.fallShot = { canvas, t: G.simT };
+}
+
+// ---------- 結果画面 ----------
+let resultText = "";
+export async function finish() {
+  G.state = "result"; G.engine.timing.timeScale = 1; setWindBanner("");
+  const placed = G.monkeys.filter((m) => !m.held).length;
+  if (G.fallPlan) takeFallShot();
+  if (!G.snaps.length) takeSnap();
+  let best = G.snaps[0];
+  for (const s of G.snaps) if (s.size >= best.size) best = s;
+  if (G.fallShot && G.simT - G.fallShot.t < 8) best = { canvas: G.fallShot.canvas, size: best.size };
+  const all = Object.values(T).join("") + "0123456789";
+  try { await Promise.all([document.fonts.load(`800 64px ${FONT}`, all), document.fonts.load(`700 40px ${FONT}`, all)]); } catch {}
+  const card = buildCard(G.finalCount, placed, best);
+  resultText = fill(T.SHARE, { score: G.score, best: best.size, left: G.finalCount });
+  document.getElementById("cardImg").src = card.toDataURL("image/png");
+  document.getElementById("result").hidden = false;
+}
+
+function outlined(g, text, x, y, lw) {
+  g.lineJoin = "round"; g.lineWidth = lw; g.strokeStyle = COLOR.KINARI; g.strokeText(text, x, y);
+  g.fillStyle = COLOR.SUMI; g.fillText(text, x, y);
+}
+// 縦書き（長音は回し、小さい字は右上へ寄せる）
+function vtext(g, text, x, y, size, step, lw) {
+  g.font = `800 ${size}px ${FONT}`; g.textAlign = "center";
+  [...text].forEach((ch, i) => {
+    const yy = y + i * step;
+    if ("ー".includes(ch)) { g.save(); g.translate(x, yy - size * 0.35); g.rotate(Math.PI / 2); outlined(g, ch, 0, size * 0.35, lw); g.restore(); }
+    else if ("ゃゅょっャュョッ".includes(ch)) outlined(g, ch, x + size * 0.12, yy - size * 0.1, lw);
+    else outlined(g, ch, x, yy, lw);
+  });
+}
+// 1080×1350：題字、左に縦書きのスコア、右に縦長の絵、落款、ハッシュタグ、和紙の質感
+function buildCard(n, total, best) {
+  const c = document.createElement("canvas");
+  c.width = 1080; c.height = 1350;
+  const g = c.getContext("2d");
+  const bg = g.createLinearGradient(0, 0, 0, 1350);
+  bg.addColorStop(0, "#E8E4D8"); bg.addColorStop(1, "#F1EBDD"); g.fillStyle = bg; g.fillRect(0, 0, 1080, 1350);
+  blob(g, 180, 140, 560, "226,206,190", 0.35); blob(g, 960, 1200, 520, "206,218,214", 0.35);
+  g.textBaseline = "alphabetic";
+  // 題字
+  g.fillStyle = COLOR.SHU; g.fillRect(84, 62, 190, 8);
+  g.font = `800 74px ${FONT}`; g.textAlign = "left"; outlined(g, T.CARD_TITLE, 80, 160, 14);
+  // 絵
+  const fx = 410, fy = 220, fw = 590, fh = 1050;
+  g.drawImage(best.canvas, fx, fy, fw, fh); g.lineWidth = 3; g.strokeStyle = "rgba(90,78,64,.7)"; g.strokeRect(fx, fy, fw, fh);
+  g.save(); g.translate(fx + fw - 92, fy + fh - 92); g.rotate(-0.04);
+  g.fillStyle = "rgba(181,101,90,.88)"; g.fillRect(0, 0, 66, 66);
+  g.fillStyle = "rgba(246,240,226,.95)"; g.font = `800 46px ${FONT}`; g.textAlign = "center"; g.fillText(T.CARD_SEAL, 33, 49); g.restore();
+  // 主役：スコア
+  vtext(g, T.CARD_SCORE, 335, 300, 52, 58, 10);
+  const len = String(G.score).length, sz = len >= 3 ? 140 : len === 2 ? 180 : 200;
+  g.textAlign = "center"; g.font = `800 ${sz}px ${FONT}`; outlined(g, String(G.score), 170, 540, 16);
+  g.font = `800 64px ${FONT}`; outlined(g, T.CARD_PT, 170, 640, 10);
+  g.fillStyle = "rgba(90,78,64,.45)"; g.fillRect(96, 720, 250, 2);
+  // 参考：群れと、のこったサル
+  g.textAlign = "center"; g.fillStyle = COLOR.USUZUMI; g.font = `700 28px ${FONT}`; g.fillText(T.CARD_BEST1, 220, 790); g.fillText(T.CARD_BEST2, 220, 826);
+  g.font = `800 84px ${FONT}`; outlined(g, String(best.size), 190, 930, 12); g.font = `800 40px ${FONT}`; outlined(g, T.CARD_UNIT, 265, 928, 8);
+  g.fillStyle = "rgba(90,78,64,.3)"; g.fillRect(120, 980, 200, 2);
+  g.fillStyle = COLOR.USUZUMI; g.font = `700 28px ${FONT}`; g.fillText(T.CARD_LEFT, 220, 1040);
+  g.font = `800 84px ${FONT}`; outlined(g, String(n), 190, 1140, 12); g.font = `800 40px ${FONT}`; outlined(g, T.CARD_UNIT, 265, 1138, 8);
+  g.fillStyle = COLOR.USUZUMI; g.font = `700 24px ${FONT}`; g.fillText(fill(T.CARD_OF, { n: total }), 220, 1184);
+  g.fillStyle = COLOR.USUZUMI; g.textAlign = "center"; g.font = `700 28px ${FONT}`; g.fillText(T.CARD_TAG, 540, 1322);
+  g.fillStyle = g.createPattern(PAPER_TILE, "repeat"); g.fillRect(0, 0, 1080, 1350);
+  return c;
+}
+
+// Xでシェア：クリックの処理の中で同期的に開く（await の後だとポップアップが止められる）
+document.getElementById("share").addEventListener("click", () => {
+  window.open(`https://x.com/intent/post?text=${encodeURIComponent(resultText)}&url=${encodeURIComponent(URL)}`, "_blank", "noopener");
+});

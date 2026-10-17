@@ -1,0 +1,149 @@
+<title>サルも木から落ちぬん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap">
+<style>
+/* 淡い水彩の紙に墨のサル。UIは生成り色の札を上下に置き、中央は木とサルに明け渡す */
+:root{
+  --washi:#EFE9DC;
+  --sumi:#3D3833;
+  --usuzumi:#7A7068;
+  --kinari:#F6F0E2;
+  --shu:#B5655A;
+  --line:rgba(90,78,64,.55);
+  --scrim:rgba(61,56,51,.45);
+  --font-mincho:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--washi);color:var(--sumi);font-family:var(--font-mincho);overflow:hidden;
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
+
+.hud{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 6px;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;z-index:2}
+.hud > *{pointer-events:auto}
+.row1{display:flex;align-items:flex-start;gap:8px}
+.logo{margin-right:auto;font-weight:800;font-size:19px;line-height:1.15;letter-spacing:.06em;
+  paint-order:stroke fill;-webkit-text-stroke:5px var(--kinari);text-shadow:0 0 1px var(--kinari)}
+.logo small{display:block;font-size:13px;letter-spacing:.3em;padding-left:2.2em}
+.fuda{display:flex;align-items:center;gap:6px;background:rgba(246,240,226,.9);border:1.5px solid var(--line);border-radius:10px;padding:4px 10px;min-width:0}
+.cnt{flex-direction:column;align-items:center;gap:0;padding:4px 12px 3px}
+.cnt .lbl{font-size:11px;color:var(--usuzumi);letter-spacing:.1em;font-weight:700}
+.cnt .num{display:flex;align-items:baseline;gap:2px}
+.cnt b{font-size:26px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.cnt .u{font-size:13px;font-weight:700}
+.cnt{transition:transform .2s}
+.cnt.bump{animation:bump .35s ease-out}
+.cnt.bumpBig{animation:bumpBig .6s ease-out}
+.cnt.bumpBig b{color:var(--shu)}
+@keyframes bump{30%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes bumpBig{20%{transform:scale(1.35) rotate(-4deg)}45%{transform:scale(.95) rotate(2deg)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cnt.bump,.cnt.bumpBig{animation:none}}
+.cnt .sub{font-size:10px;color:var(--usuzumi);font-weight:700;font-variant-numeric:tabular-nums}
+.next{cursor:grab;touch-action:none;border-style:dashed;border-color:var(--shu);transition:transform .15s}
+.next:hover{transform:translateY(-1px)}
+.next.pulling{cursor:grabbing;opacity:.55}
+.next.pulling canvas{visibility:hidden}
+.next canvas{width:40px;height:52px;flex:none}
+.logo,.cnt .lbl,.cnt .sub{white-space:nowrap}
+.next{flex:0 1 auto;min-width:0}
+@media (max-width:420px){.logo{font-size:17px}.logo small{font-size:12px}.next .nm b{max-width:72px}}
+.next .nm{display:flex;flex-direction:column;min-width:0}
+.next .nm span{font-size:10px;color:var(--shu);letter-spacing:.12em;font-weight:800}
+.next .nm b{font-size:12px;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.row2{display:flex;flex-wrap:wrap;gap:6px}
+.seg{display:inline-flex;align-items:center;background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
+.seg > span{font-size:11px;font-weight:700;color:var(--usuzumi);padding:0 4px 0 12px;letter-spacing:.1em}
+.seg button{border:0;background:transparent;font-weight:700;font-size:13px;padding:5px 11px}
+.seg button[aria-pressed="true"]{background:var(--sumi);color:var(--kinari)}
+
+.bottom{position:fixed;left:0;right:0;bottom:0;padding:6px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
+  display:flex;justify-content:space-between;align-items:flex-end;gap:8px;pointer-events:none;z-index:2}
+.bottom > *{pointer-events:auto}
+.chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px}
+.chip[aria-expanded="true"]{background:var(--sumi);color:var(--kinari)}
+.hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 58px);
+  width:max-content;max-width:calc(100% - 32px);background:rgba(246,240,226,.92);border:1.5px solid var(--line);color:var(--sumi);font-size:13px;font-weight:700;
+  padding:8px 14px;border-radius:10px;text-align:center;line-height:1.6;z-index:2;transition:opacity .5s;pointer-events:none}
+.hint.fade{opacity:0}
+.wind{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--hud-h,120px) + 6px);z-index:2;pointer-events:none;
+  background:rgba(246,240,226,.92);border:1.5px solid var(--line);border-radius:999px;padding:4px 16px;font-weight:800;font-size:15px;letter-spacing:.2em;
+  transition:opacity .4s}
+.wind.off{opacity:0}
+
+.tune{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 58px);z-index:3;width:min(280px,calc(100% - 28px));
+  background:var(--kinari);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tune h2{margin:0;font-size:14px;font-weight:800}
+.tune label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;font-weight:700}
+.tune label output{font-variant-numeric:tabular-nums;color:var(--usuzumi)}
+.tune label small{grid-column:1/-1;font-weight:500;color:var(--usuzumi);font-size:11px}
+.tune input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--shu)}
+
+.result{position:fixed;inset:0;background:var(--scrim);z-index:5;display:flex;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);overflow:auto;touch-action:auto}
+.card{background:var(--kinari);border:1.5px solid var(--line);border-radius:14px;width:min(420px,100%);padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text}
+.card img{display:block;width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;-webkit-touch-callout:default}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap}
+.card .acts button{flex:1 1 120px;border:1.5px solid var(--line);border-radius:999px;padding:10px;font-weight:700;background:rgba(240,233,219,.88)}
+.card .acts button.primary{background:var(--shu);border-color:var(--shu);color:var(--kinari)}
+.card p{margin:0;font-size:12px;line-height:1.7;color:var(--usuzumi)}
+.card input{width:100%;box-sizing:border-box;font:inherit;font-size:12px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#fffdf7;color:var(--sumi)}
+#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 16px;text-align:center}
+@media (prefers-reduced-motion:reduce){.hint{transition:none}}
+</style>
+
+<canvas id="cv" aria-label="ゲーム画面"></canvas>
+<div id="boot">よみこみ中…</div>
+
+<header class="hud" id="hud">
+  <div class="row1">
+    <div class="logo">サルも木から<small>落ちぬん</small></div>
+    <div class="fuda cnt" aria-live="polite"><span class="lbl">スコア</span><span class="num"><b id="cnt">0</b><span class="u">点</span></span><span class="sub">群れ <span id="cntSub">0</span>匹</span></div>
+    <div class="fuda next" id="nextBox" role="button" aria-label="ここからサルをドラッグして連れてくる"><canvas id="nextCv" width="80" height="104"></canvas><div class="nm"><span>ひっぱる ↙</span><b id="nextName">-</b></div></div>
+  </div>
+  <div class="row2">
+    <div class="seg" role="group" aria-label="操作">
+      <span>操作</span><button id="inDrag" data-input="drag">ドラッグ</button><button id="inDrop" data-input="drop">落とす</button>
+    </div>
+    <div class="seg" role="group" aria-label="つかみ方">
+      <span>つかみ</span><button id="grAuto" data-grab="auto">自動</button><button id="grTap" data-grab="tap">ガシッ</button>
+    </div>
+  </div>
+</header>
+
+<div class="hint" id="hint"></div>
+<div class="wind off" id="wind" aria-live="polite"></div>
+
+<div class="bottom">
+  <button class="chip" id="resetBtn">やり直す</button>
+  <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune">調整</button>
+</div>
+
+<section class="tune" id="tune" hidden>
+  <h2>調整（モック用）</h2>
+  <label for="sFun">木のふんばり <output id="oFun"></output><input type="range" id="sFun" min="0.2" max="3" step="0.1"><small>小さいほど枝や幹がしなる</small></label>
+  <label for="sRange">つかめる距離 <output id="oRange"></output><input type="range" id="sRange" min="6" max="32" step="1"><small>手からこの距離に枝や足があればつかむ</small></label>
+  <label for="sGrip">握力 <output id="oGrip"></output><input type="range" id="sGrip" min="1.5" max="7" step="0.1"><small>自分の体重の何倍までぶら下げられるか（両手で倍）</small></label>
+  <label for="sSize">サルの大きさ <output id="oSize"></output><input type="range" id="sSize" min="1" max="1.6" step="0.1"><small>「やり直す」で反映</small></label>
+  <label for="sFat">疲れやすさ <output id="oFat"></output><input type="range" id="sFat" min="0" max="3" step="0.1"><small>0で疲れない。大きいほど早く手をはなす</small></label>
+  <label for="sWind">風の強さ <output id="oWind"></output><input type="range" id="sWind" min="0" max="2" step="0.1"><small>0で風なし</small></label>
+</section>
+
+<div class="result" id="result" hidden>
+  <div class="card">
+    <img id="cardImg" alt="結果画像">
+    <div class="acts">
+      <button class="primary" id="shareBtn">画像をシェア</button>
+      <button id="copyBtn">結果の文をコピー</button>
+      <button id="againBtn">もう一回</button>
+    </div>
+    <p id="shareNote" hidden>この画面ではシェア機能が使えません。画像を長押し（PCは右クリック）で保存してください。</p>
+    <input id="copyField" readonly hidden aria-label="結果の文">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
