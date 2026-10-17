@@ -36,7 +36,8 @@ export function resize() {
 export function fitCam(snap) {
   const b = contentBox(false, 0.02);
   const ts = Math.min(innerWidth / (b.x1 - b.x0), frame0.avail / (b.y1 - b.y0));
-  const tcx = (b.x0 + b.x1) / 2, tcy = (b.y0 + b.y1) / 2;
+  // 横は真ん中、縦は上ぞろえ（縦に余りがあれば下に回す。枝が画面の上のほうに来て、鎖を伸ばす場所が下に空く）
+  const tcx = (b.x0 + b.x1) / 2, tcy = b.y0 + frame0.avail / ts / 2;
   if (snap || !cam.s) { cam.s = ts; cam.cx = tcx; cam.cy = tcy; }
   else {
     const k = G.dragging ? C.FOLLOW_DRAG : C.FOLLOW;

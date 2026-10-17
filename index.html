@@ -42,12 +42,12 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .logo{margin:0 auto 0 0;font-weight:800;font-size:19px;line-height:1.15;letter-spacing:.06em;
   paint-order:stroke fill;-webkit-text-stroke:5px var(--kinari);text-shadow:0 0 1px var(--kinari)}
 .logo small{display:block;font-size:13px;letter-spacing:.3em;padding-left:2.2em}
-.fuda{display:flex;align-items:center;gap:6px;background:rgba(246,240,226,.9);border:1.5px solid var(--line);border-radius:10px;padding:4px 10px;min-width:0}
-.cnt{flex-direction:column;align-items:center;gap:0;padding:4px 12px 3px}
-.cnt .lbl{font-size:11px;color:var(--usuzumi);letter-spacing:.1em;font-weight:700}
+.fuda{display:flex;align-items:center;gap:9px;background:rgba(246,240,226,.9);border:1.5px solid var(--line);border-radius:14px;padding:6px 14px;min-width:0}
+.cnt{flex-direction:column;align-items:center;gap:0;padding:6px 18px 5px}
+.cnt .lbl{font-size:16px;color:var(--usuzumi);letter-spacing:.1em;font-weight:700}
 .cnt .num{display:flex;align-items:baseline;gap:2px}
-.cnt b{font-size:26px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
-.cnt .u{font-size:13px;font-weight:700}
+.cnt b{font-size:39px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.cnt .u{font-size:19px;font-weight:700}
 .cnt{transition:transform .2s}
 .cnt.bump{animation:bump .35s ease-out}
 .cnt.bumpBig{animation:bumpBig .6s ease-out}
@@ -57,19 +57,31 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 @keyframes bumpBig{20%{transform:scale(1.35) rotate(-4deg)}45%{transform:scale(.95) rotate(2deg)}100%{transform:scale(1)}}
 @keyframes bumpHuge{15%{transform:scale(1.65) rotate(-7deg)}35%{transform:scale(.9) rotate(4deg)}55%{transform:scale(1.18) rotate(-2deg)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.cnt.bump,.cnt.bumpBig,.cnt.bumpHuge{animation:none}}
-.cnt .sub{font-size:10px;color:var(--usuzumi);font-weight:700;font-variant-numeric:tabular-nums}
+.cnt .sub{font-size:15px;color:var(--usuzumi);font-weight:700;font-variant-numeric:tabular-nums}
 .next{cursor:grab;touch-action:none;border-style:dashed;border-color:var(--shu);transition:transform .15s}
 .next:hover{transform:translateY(-1px)}
 .next.pulling{cursor:grabbing;opacity:.55}
 .next.pulling canvas{visibility:hidden}
-.next canvas{width:40px;height:52px;flex:none}
+.next canvas{width:60px;height:78px;flex:none}
 .logo,.cnt .lbl,.cnt .sub{white-space:nowrap}
-.next{flex:0 1 auto;min-width:0}
-@media (max-width:420px){.logo{font-size:17px}.logo small{font-size:12px}.next .nm b{max-width:72px}}
-.next .nm{display:flex;flex-direction:column;min-width:0}
-.next .nm span{font-size:10px;color:var(--shu);letter-spacing:.12em;font-weight:800}
-.next .nm b{font-size:12px;max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
-
+.next .lbl{font-size:16px;color:var(--usuzumi);letter-spacing:.14em;font-weight:800;line-height:1.1}
+.nextWrap{position:relative;flex:0 1 auto;min-width:0;display:flex}
+.next{flex:1 1 auto;min-width:0}
+/* 「ひっぱる」は札の下にはみ出して置く（上の帯の高さは変えない。押しても反応しない） */
+.pull{position:absolute;top:calc(100% + 3px);left:0;right:0;text-align:center;font-size:15px;color:var(--shu);font-weight:800;letter-spacing:.12em;
+  white-space:nowrap;pointer-events:none;paint-order:stroke fill;-webkit-text-stroke:4px var(--kinari)}
+/* 名前は札の空きいっぱいの大きさ（文字の大きさは src/input.js の fitName が名前ごとに決める。2〜3行に折り返すこともある） */
+.next .nm{display:flex;flex-direction:column;flex:0 1 150px;min-width:0}
+.next .nm b{font-size:18px;line-height:1.2;line-break:anywhere;text-wrap:balance;overflow:hidden;font-weight:800}
+/* スマホ幅では横に収まるよう、少しだけ詰める（それでも元の約1.3倍） */
+@media (max-width:420px){
+  .row1{gap:6px}.logo{font-size:15px}.logo small{font-size:11px;padding-left:1.6em}
+  .fuda{padding:5px 10px;gap:6px}.cnt{padding:5px 11px 4px}
+  .cnt .lbl{font-size:13px}.cnt b{font-size:34px}.cnt .u{font-size:16px}.cnt .sub{font-size:13px}
+  .next canvas{width:52px;height:68px}
+  .pull{font-size:13px;letter-spacing:.06em}
+  .next .lbl{font-size:13px}
+}
 .bottom{position:fixed;left:0;right:0;bottom:0;padding:6px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
   display:flex;justify-content:space-between;align-items:flex-end;gap:8px;pointer-events:none;z-index:2}
 .bottom > *{pointer-events:auto}
@@ -134,7 +146,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
   <div class="row1">
     <h1 class="logo">サルも木から<small>落ちぬん</small></h1>
     <div class="fuda cnt" aria-live="polite"><span class="lbl">スコア</span><span class="num"><b id="cnt">0</b><span class="u">点</span></span><span class="sub">群れ <span id="cntSub">0</span>匹</span></div>
-    <div class="fuda next" id="nextBox" role="button" aria-label="ここからサルをドラッグして連れてくる"><canvas id="nextCv" width="80" height="104"></canvas><div class="nm"><span>ひっぱる ↙</span><b id="nextName">-</b></div></div>
+    <div class="nextWrap">
+      <div class="fuda next" id="nextBox" role="button" aria-label="ここからサルをドラッグして連れてくる"><canvas id="nextCv" width="120" height="156"></canvas><div class="nm"><span class="lbl">NEXT</span><b id="nextName">-</b></div></div>
+      <span class="pull" aria-hidden="true">ひっぱる ↙</span>
+    </div>
   </div>
 </header>
 
@@ -161,7 +176,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
   <label>木のふんばり <output></output><input type="range" data-key="FUNBARI" min="0.2" max="3" step="0.1"><small>小さいほど枝や幹がしなる</small></label>
   <label>つかめる距離 <output></output><input type="range" data-key="RANGE" min="6" max="32" step="1"><small>手からこの距離に枝や足があればつかむ</small></label>
   <label>握力 <output></output><input type="range" data-key="GRIP" min="1.5" max="7" step="0.1"><small>自分の体重の何倍までぶら下げられるか（両手で倍）</small></label>
-  <label>サルの大きさ <output></output><input type="range" data-key="SIZE" min="1" max="1.6" step="0.1"><small>「やり直す」で反映</small></label>
+  <label>サルの大きさ <output></output><input type="range" data-key="SIZE" min="1" max="2" step="0.1"><small>「やり直す」で反映</small></label>
   <label>疲れやすさ <output></output><input type="range" data-key="FATIGUE" min="0" max="3" step="0.1"><small>0で疲れない。大きいほど早く手をはなす</small></label>
   <label>風の強さ <output></output><input type="range" data-key="WIND" min="0" max="2" step="0.1"><small>0で風なし</small></label>
 </section>

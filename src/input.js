@@ -15,11 +15,24 @@ let trail = [], lift = 0, fromBox = false;
 // 右上の札に、次に出てくるサルを描く
 export function updateNext() {
   const t = G.nextType;
-  document.getElementById("nextName").textContent = t.name;
-  nctx.setTransform(1, 0, 0, 1, 0, 0); nctx.clearRect(0, 0, 80, 104);
-  const k = Math.min(72 / t.w, 98 / t.h);
-  nctx.drawImage(t.img, 40 - (t.w * k) / 2, 52 - (t.h * k) / 2, t.w * k, t.h * k);
+  fitName(t.name);
+  const W = nextCv.width, H = nextCv.height, k = Math.min((W * 0.9) / t.w, (H * 0.94) / t.h);
+  nctx.setTransform(1, 0, 0, 1, 0, 0); nctx.clearRect(0, 0, W, H);
+  nctx.drawImage(t.img, W / 2 - (t.w * k) / 2, H / 2 - (t.h * k) / 2, t.w * k, t.h * k);
 }
+
+// 名前を札の空きに入るいちばん大きな文字にする（1〜3行で比べて、大きく書けるほう）
+const nameEl = document.getElementById("nextName");
+function fitName(name) {
+  nameEl.textContent = name;
+  const nm = nameEl.parentElement, W = nm.clientWidth;
+  const H = nextCv.clientHeight - nm.firstElementChild.offsetHeight; // NEXT の下の高さ
+  const n = [...name].length;
+  let size = 0;
+  for (let lines = 1; lines <= 3; lines++) size = Math.max(size, Math.min(W / Math.ceil(n / lines), H / (lines * 1.2)));
+  nameEl.style.fontSize = Math.floor(size * 0.97) + "px";
+}
+addEventListener("resize", () => G.nextType && fitName(G.nextType.name));
 
 // ---------- 出す・はなす ----------
 function spawnHeld(x, y) {
