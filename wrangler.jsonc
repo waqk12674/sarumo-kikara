@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sarumo-kikara",
+  "compatibility_date": "2026-10-01",
+  // いまはテスト版：workers.dev（https://sarumo-kikara.<サブドメイン>.workers.dev/）だけで公開する。
+  // AdSense 審査中の waqk.jp には出さないため、routes は書かない。
+  // 本公開のときに "routes": [{ "pattern": "waqk.jp/sarumo-kikara/*", "zone_name": "waqk.jp" }] と
+  // _redirects（/sarumo-kikara/* /:splat 200）を足す（手本は dashimaki）
+  "workers_dev": true,
+  // 静的ファイルだけを配信する（Worker のスクリプトはないので、Workers のリクエストに数えない）。
+  // 公開するファイルは .assetsignore の許可リストで決める
+  "assets": {
+    "directory": "."
+  }
+}

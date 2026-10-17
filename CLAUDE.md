@@ -16,6 +16,7 @@
 - `assets/monkeys/`：サルのPNGと `monkeys.json`（形式は SPEC.md §4）。`assets/source/` は元画像で、公開しない
 - `share/`：Xシェア用の中継ページ（予定。OGP画像を作るときに一緒に作る。今のシェアの URL は `https://waqk.jp/sarumo-kikara/`）
 - `mock/`：引き継ぎ時点のモック（参考用。公開しない）
+- 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す
 
 ## 確認のしかた
 
