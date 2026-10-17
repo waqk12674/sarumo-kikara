@@ -4,6 +4,7 @@ import { now, fill } from "./util.js";
 import { blob, drawScene, PAPER_TILE } from "./render.js";
 import { componentOf, attached, groups } from "./grab.js";
 import { setWindBanner } from "./wind.js";
+import { play } from "./audio.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
@@ -82,6 +83,7 @@ export async function finish() {
   resultText = fill(T.SHARE, { score: G.score, best: best.size, left: G.finalCount });
   document.getElementById("cardImg").src = card.toDataURL("image/png");
   document.getElementById("result").hidden = false;
+  play("result");
 }
 
 function outlined(g, text, x, y, lw) {
@@ -108,8 +110,17 @@ function buildCard(n, total, best) {
   blob(g, 180, 140, 560, "226,206,190", 0.35); blob(g, 960, 1200, 520, "206,218,214", 0.35);
   g.textBaseline = "alphabetic";
   // 題字
-  g.fillStyle = COLOR.SHU; g.fillRect(84, 62, 190, 8);
-  g.font = `800 74px ${FONT}`; g.textAlign = "left"; outlined(g, T.CARD_TITLE, 80, 160, 14);
+  g.font = `800 74px ${FONT}`; g.textAlign = "left";
+  // 題字の下に、題字の幅いっぱいの朱の筆の線（左が太く、右へはらう）
+  const tw = g.measureText(T.CARD_TITLE).width, ux = 82, uy = 186;
+  g.fillStyle = COLOR.SHU;
+  g.beginPath();
+  g.moveTo(ux, uy - 5);
+  g.quadraticCurveTo(ux + tw * 0.5, uy - 9, ux + tw + 6, uy - 2);
+  g.quadraticCurveTo(ux + tw * 0.5, uy + 3, ux + 4, uy + 6);
+  g.quadraticCurveTo(ux - 4, uy, ux, uy - 5);
+  g.fill();
+  outlined(g, T.CARD_TITLE, 80, 160, 14);
   // 絵
   const fx = 410, fy = 220, fw = 590, fh = 1050;
   g.drawImage(best.canvas, fx, fy, fw, fh); g.lineWidth = 3; g.strokeStyle = "rgba(90,78,64,.7)"; g.strokeRect(fx, fy, fw, fh);

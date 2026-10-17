@@ -73,6 +73,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .bottom > *{pointer-events:auto}
 .chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px}
 .chip[aria-expanded="true"]{background:var(--sumi);color:var(--kinari)}
+.bottom .right{display:flex;gap:8px}
 .hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 58px);
   width:max-content;max-width:calc(100% - 32px);background:rgba(246,240,226,.92);border:1.5px solid var(--line);color:var(--sumi);font-size:13px;font-weight:700;
   padding:8px 14px;border-radius:10px;text-align:center;line-height:1.6;z-index:2;transition:opacity .5s;pointer-events:none}
@@ -130,7 +131,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 
 <div class="bottom">
   <button class="chip" id="resetBtn">やり直す</button>
-  <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune" hidden>調整</button>
+  <div class="right">
+    <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune" hidden>調整</button>
+    <button class="chip" id="muteBtn" aria-pressed="false">音 あり</button>
+  </div>
 </div>
 
 <!-- ?debug=1 のときだけ使う調整パネル（値は src/config.js の PLAY） -->

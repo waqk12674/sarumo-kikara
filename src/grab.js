@@ -2,6 +2,7 @@
 import { G, cfg, P, T, COLOR, pop } from "./state.js";
 import { dist, closest, now, fill } from "./util.js";
 import { pointW, localPt } from "./monkeys.js";
+import { play } from "./audio.js";
 const { Body, Composite, Constraint, Vector } = Matter;
 
 const C = cfg.GRAB;
@@ -102,6 +103,7 @@ function scoreNew(m) {
     pop(p.x, top - 6 * G.SZ, fill(T.CHAIN, { k }), 30 + Math.min(k, 8) * 2, true, COLOR.SHU);
     pop(p.x + 26 * G.SZ, top - 38 * G.SZ, fill(T.PLUS, { k }), 26, false, COLOR.SHU);
     G.shake = Math.min(14, 4 + k * 1.5);
+    play("chain", Math.min(cfg.AUDIO.CHAIN_RATE_MAX, 1 + cfg.AUDIO.CHAIN_RATE_STEP * (k - 2)));
   } else pop(p.x, top - 10 * G.SZ, fill(T.PLUS, { k }), 22, false, COLOR.SUMI);
   scoreEl.textContent = G.score;
   const box = scoreEl.closest(".cnt");
@@ -124,6 +126,7 @@ function grab(m, i, t) {
   g.stamina = m.stam[i]; g.strain = 0; g.at = G.simT;
   c.length = Math.max(C.MIN_LEN, dist(pointW(m, i), t.point)); // いきなり引き寄せず、たぐり寄せる（長さ0は暴れる）
   if (m.grabs.some(Boolean)) { c.stiffness = C.SECOND_STIFFNESS; c.damping = C.SECOND_DAMPING; } // 2本目は添えるだけ
+  else play("grab");
   Composite.add(G.world, c);
   m.grabs[i] = g;
   scoreNew(m);
@@ -144,7 +147,9 @@ export function release(m, i, quiet) {
   m.grabs[i] = null;
   if (quiet) return;
   const p = pointW(m, i);
-  pop(p.x, p.y - 10, m.grabs.some(Boolean) ? T.POP_ZURU : T.POP_A, 24);
+  const still = m.grabs.some(Boolean);
+  pop(p.x, p.y - 10, still ? T.POP_ZURU : T.POP_A, 24);
+  play(still ? "slip" : "fall");
   if (wasOnTree && !m.grabs.some(Boolean) && G.state === "play")
     G.fallPlan = { at: G.simT + cfg.END.FALL_SHOT_DELAY, m, from: g.kind === "mon" ? g.mon : null, hand: p };
 }

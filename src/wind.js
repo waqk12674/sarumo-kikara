@@ -1,5 +1,6 @@
 // 風：ときどき横から吹く。来る前に札で知らせる（SPEC.md §7）
 import { G, cfg, P, T, DT } from "./state.js";
+import { play } from "./audio.js";
 const { Body } = Matter;
 
 const C = cfg.WIND;
@@ -15,6 +16,7 @@ export function stepWind() {
   if (!wind.dur && G.simT >= wind.next - C.WARN && !wind.warned) {
     wind.warned = true; wind.dir = G.rand() < 0.5 ? -1 : 1;
     setWindBanner(wind.dir > 0 ? T.WIND_R : T.WIND_L);
+    play("wind");
   }
   if (!wind.dur && G.simT >= wind.next) {
     wind.start = G.simT; wind.dur = C.DUR_MIN + G.rand() * C.DUR_RAND; wind.str = (C.STR_MIN + G.rand() * C.STR_RAND) * P.WIND;

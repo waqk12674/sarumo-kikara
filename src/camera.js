@@ -16,7 +16,7 @@ export function contentBox(includeHeld, margin) {
     const p = m.body.position;
     if (p.y > GROUND_Y + 200) continue;
     x0 = Math.min(x0, p.x - 62 * G.SZ); x1 = Math.max(x1, p.x + 62 * G.SZ);
-    y0 = Math.min(y0, p.y - 90 * G.SZ); y1 = Math.max(y1, p.y + 72 * G.SZ);
+    y0 = Math.min(y0, p.y - 90 * G.SZ); y1 = Math.max(y1, p.y + C.ROOM_BELOW * G.SZ);
   }
   if (y1 > GROUND_Y - C.GROUND_SHOW) y1 = GROUND_Y + 70;
   const mx = (x1 - x0) * margin, my = (y1 - y0) * margin;

@@ -125,6 +125,7 @@ export const CONFIG = {
   CAMERA: {
     CANOPY: { x0: -40, x1: 460, y0: 120, y1: 680 }, // 最初に映す範囲（木の上のほう）
     GROUND_SHOW: 420,   // サルが地面からこの距離まで下りたら、地面も映す
+    ROOM_BELOW: 140,    // いちばん下のサルの下に空けて映す距離（×サルの大きさ）。もう1匹つなげられるように
     FOLLOW: 0.05,       // カメラが追う速さ
     FOLLOW_DRAG: 0.015, // 運んでいる最中にカメラが追う速さ
   },
@@ -140,7 +141,30 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------
-  // 8. TEXT — 画面に出る文言（ja / en。文言を足すときは両方に書く）
+  // 8. AUDIO — 音（assets/audio/<ファイル名>.wav。作り直しは python tools/make_se.py）
+  // ---------------------------------------------------------------
+  AUDIO: {
+    MASTER: 0.8,          // 全体の音量（0〜1）
+    FILES: {              // 用途 → ファイル名
+      pon: "se_pon",       // 札から引っぱる・持ち上げる
+      grab: "se_grab",     // つかむ（拍子木）
+      chain: "se_chain",   // 鎖ボーナス（鼓）
+      slip: "se_slip",     // ずるっ
+      fall: "se_fall",     // あっ（全部の手が離れた）
+      wind: "se_wind",     // 風の予告
+      thud: "se_thud",     // ぽとっ（地面）
+      result: "se_result", // 結果画面
+      ambient: "amb_forest", // 環境音（鳥のさえずり。ループ）
+    },
+    VOLUME: {             // 用途ごとの音量（0〜1）
+      pon: 0.45, grab: 0.6, chain: 0.8, slip: 0.5, fall: 0.45, wind: 0.6, thud: 0.9, result: 0.8, ambient: 0.1,
+    },
+    CHAIN_RATE_STEP: 0.07, // 鎖ボーナスの音：深さ1段ごとに音を高くする割合
+    CHAIN_RATE_MAX: 1.7,   // 鎖ボーナスの音の高さの上限（倍）
+  },
+
+  // ---------------------------------------------------------------
+  // 9. TEXT — 画面に出る文言（ja / en。文言を足すときは両方に書く）
   //   HTML に書いてある文言（遊び方・ボタン）は index.html にある
   // ---------------------------------------------------------------
   TEXT: {
@@ -166,6 +190,8 @@ export const CONFIG = {
       CARD_OF: "（{n}匹中）",
       CARD_TAG: "#サルも木から落ちぬん",
       CARD_SEAL: "猿",
+      SOUND_ON: "音 あり",
+      SOUND_OFF: "音 なし",
       SHARE: "サルも木から落ちぬん｜スコア {score}点（いちばん大きな群れ {best}匹／のこったサル {left}匹） #サルも木から落ちぬん",
     },
     en: {
@@ -190,6 +216,8 @@ export const CONFIG = {
       CARD_OF: "(of {n})",
       CARD_TAG: "#MonkeysDontFall",
       CARD_SEAL: "猿",
+      SOUND_ON: "Sound on",
+      SOUND_OFF: "Sound off",
       SHARE: "Monkeys Don't Fall | Score {score} (biggest troop {best} / monkeys left {left}) #MonkeysDontFall",
     },
   },

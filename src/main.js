@@ -10,6 +10,7 @@ import { resize, fitCam } from "./camera.js";
 import { updateNext, dropHeldSilently, clearInput } from "./input.js";
 import { drawScene } from "./render.js";
 import { finish, takeSnap, takeFallShot } from "./result.js";
+import { loadSounds, play } from "./audio.js";
 const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
 
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
@@ -73,6 +74,7 @@ function gameOver(m) {
   if (G.held) dropHeldSilently();
   G.dragging = false;
   pop(m.body.position.x, m.body.position.y - 50, T.POP_POTO, 40, true);
+  play("thud");
 }
 
 // 右上の札：「スコア ○点」と「群れ ○匹」（木につながっている、いちばん大きな群れ）
@@ -129,6 +131,7 @@ function frame(tn) {
 
 // ---------- 起動 ----------
 const boot = document.getElementById("boot");
+loadSounds();
 loadMonkeys().then(() => {
   boot.remove();
   init(); resize();

@@ -4,6 +4,7 @@ import { now, dist } from "./util.js";
 import { makeMonkey, randType, pointW } from "./monkeys.js";
 import { release } from "./grab.js";
 import { toWorld, clampHeld } from "./camera.js";
+import { play } from "./audio.js";
 const { Body, Composite, Vertices, Vector } = Matter;
 
 const cv = document.getElementById("cv");
@@ -26,6 +27,7 @@ function spawnHeld(x, y) {
   Body.setStatic(m.body, true); m.body.isSensor = true; m.held = true;
   G.held = m; G.monkeys.push(m); Composite.add(G.world, m.body);
   G.nextType = randType(); updateNext();
+  play("pon");
 }
 function releaseHeld() {
   const m = G.held;
@@ -88,6 +90,7 @@ function pickUp(m, p) {
   m.pickOff = Vector.sub(m.body.position, p);
   trail = [{ x: m.body.position.x, y: m.body.position.y, t: now() }];
   pop(m.body.position.x, m.body.position.y - 60, T.POP_YOISHO, 20);
+  play("pon");
 }
 
 cv.addEventListener("pointerdown", (e) => {
