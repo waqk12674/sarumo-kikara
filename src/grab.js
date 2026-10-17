@@ -20,9 +20,16 @@ export function grabWorld(m, i) {
   return pointW(g.mon, g.pi);
 }
 
+// つかむ判定に使う線分：手の先から、こぶしの長さだけ体の下へ（見た目のこぶしが枝にふれていればつかめる）
+export function fistSeg(m, i) {
+  const a = pointW(m, i);
+  return { a, b: Vector.add(a, Vector.rotate({ x: 0, y: C.FIST * G.SZ }, m.body.angle)) };
+}
+
 // 手 i がつかめる先を探す（枝か、ほかのサルの空いている hang 点）
 export function findTarget(m, i, range) {
-  const hp = pointW(m, i);
+  const hp = pointW(m, i), fs = fistSeg(m, i), mid = Vector.mult(Vector.add(fs.a, fs.b), 0.5);
+  const reach = (q) => dist(q, closest(q, fs.a, fs.b)); // こぶしの線分からの距離
   let best = null, bd = range;
   // 2本目の手（や尻尾）は、1本目と同じもの（木なら木、サルならそのサル）しかつかまない
   const first = m.grabs.find(Boolean);
@@ -51,12 +58,12 @@ export function findTarget(m, i, range) {
     const free = (q) => taken.every((t) => dist(t, q) >= C.GAP * G.SZ);
     for (const p of G.pieces) {
       if (p.kind !== "branch") continue; // 幹はつかめない。枝だけ
-      const q0 = closest(hp, p.a, p.b), len = dist(p.a, p.b), ux = (p.b.x - p.a.x) / len, uy = (p.b.y - p.a.y) / len;
+      const q0 = closest(mid, p.a, p.b), len = dist(p.a, p.b), ux = (p.b.x - p.a.x) / len, uy = (p.b.y - p.a.y) / len;
       for (let k = 0; k <= C.SLIDE_TRIES; k++) {
         const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * C.SLIDE_STEP;
         const t = (q0.x - p.a.x) * ux + (q0.y - p.a.y) * uy + off;
         if (t < C.BASE_CLEAR || t > len) continue; // 幹のそばの付け根はつかめない
-        const q = { x: p.a.x + ux * t, y: p.a.y + uy * t }, d = dist(hp, q) - p.t / 2;
+        const q = { x: p.a.x + ux * t, y: p.a.y + uy * t }, d = reach(q) - p.t / 2;
         if (d >= bd) continue;
         if (!free(q) || !fit(q)) continue;
         bd = d; best = { kind: "tree", piece: p, point: q };
@@ -69,7 +76,7 @@ export function findTarget(m, i, range) {
     if (o === m || o.held || below.has(o) || (onlyMon && o !== onlyMon)) continue;
     o.type.points.forEach((pt, j) => {
       if (!pt.hang || o.hangBy[j] || o.grabs[j]) return;
-      const fp = pointW(o, j), d = dist(hp, fp);
+      const fp = pointW(o, j), d = reach(fp);
       if (d < bd && fit(fp)) { bd = d; best = { kind: "mon", mon: o, pi: j, point: fp }; }
     });
   }

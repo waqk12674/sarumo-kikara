@@ -3,7 +3,7 @@ import { G, P, T, COLOR, FONT, ink } from "./state.js";
 import { rng, now, fill } from "./util.js";
 import { BR, GROUND_Y, TRUNK_X, trunkPt, trunkTilt, trunkW, branchEnds } from "./tree.js";
 import { pointW } from "./monkeys.js";
-import { findTarget } from "./grab.js";
+import { findTarget, fistSeg } from "./grab.js";
 import { selection } from "./input.js";
 
 // 和紙のすき目（タイル）
@@ -239,12 +239,14 @@ function drawFx(c) {
   if (m && G.state === "play") {
     m.type.points.forEach((pt, i) => {
       if (!pt.grab || m.grabs[i] || m.hangBy[i]) return;
-      const hp = pointW(m, i), t = findTarget(m, i, P.RANGE);
-      c.beginPath(); c.arc(hp.x, hp.y, P.RANGE, 0, Math.PI * 2);
+      // つかめる範囲：こぶしの線分のまわり（縦長のカプセル）
+      const hp = pointW(m, i), t = findTarget(m, i, P.RANGE), s = fistSeg(m, i), ang = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
+      c.beginPath(); c.arc(s.a.x, s.a.y, P.RANGE, ang + Math.PI / 2, ang - Math.PI / 2); c.arc(s.b.x, s.b.y, P.RANGE, ang - Math.PI / 2, ang + Math.PI / 2); c.closePath();
       if (t) {
         c.fillStyle = "rgba(181,101,90,.22)"; c.fill(); c.strokeStyle = "rgba(181,101,90,.9)"; c.lineWidth = 1.6 * u; c.stroke();
-        c.beginPath(); c.moveTo(hp.x, hp.y); c.lineTo(t.point.x, t.point.y); c.lineWidth = 2.4 * u; c.stroke();
-        c.beginPath(); c.arc(t.point.x, t.point.y, 3.2 * u, 0, Math.PI * 2); c.fillStyle = COLOR.SHU; c.fill();
+        // つかむ先への線と点は、濃い朱でくっきり見せる
+        c.beginPath(); c.moveTo(hp.x, hp.y); c.lineTo(t.point.x, t.point.y); c.strokeStyle = "#8E3B30"; c.lineWidth = 3.2 * u; c.stroke();
+        c.beginPath(); c.arc(t.point.x, t.point.y, 4 * u, 0, Math.PI * 2); c.fillStyle = "#8E3B30"; c.fill();
       } else { c.setLineDash([2 * u, 4 * u]); c.strokeStyle = ink(0.45); c.lineWidth = 1.2 * u; c.stroke(); c.setLineDash([]); }
     });
   }
