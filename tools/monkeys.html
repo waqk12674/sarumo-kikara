@@ -31,7 +31,8 @@
 </div>
 <div class="bar">並べ方：<button data-sort="json">データの順</button><button data-sort="weight">重さの順</button></div>
 <div class="grid" id="grid"></div>
-<script>
+<script type="module">
+import { CONFIG } from "../src/config.js";
 const KIND = { hand: "手", foot: "足", tail: "尻尾" };
 const HEAVY = 1.05, SCALE = 1.6; // 表示の倍率
 const area = (h) => Math.abs(h.reduce((s, [x, y], i) => { const [x2, y2] = h[(i + 1) % h.length]; return s + x * y2 - x2 * y; }, 0)) / 2;
@@ -44,7 +45,8 @@ fetch("../assets/monkeys/monkeys.json").then((r) => r.json()).then(async (data) 
   const ref = area(data.find((d) => d.id === "nihonzaru").hull);
   const list = await Promise.all(data.map((d, i) => new Promise((ok) => {
     const img = new Image();
-    img.onload = () => ok({ ...d, i, img, weight: area(d.hull) / ref });
+    const s = CONFIG.SPECIES_SIZE[d.id] || 1; // 種ごとの倍率（重さは面積なので2乗で効く）
+    img.onload = () => ok({ ...d, i, img, s, weight: (area(d.hull) * s * s) / ref });
     img.src = "../assets/monkeys/" + d.file;
   })));
   const grid = document.getElementById("grid");
@@ -54,10 +56,11 @@ fetch("../assets/monkeys/monkeys.json").then((r) => r.json()).then(async (data) 
     for (const d of items) {
       const card = document.createElement("div"); card.className = "card";
       const cv = document.createElement("canvas");
-      cv.width = Math.ceil(d.w * SCALE) + 16; cv.height = Math.ceil(d.h * SCALE) + 16;
-      const c = cv.getContext("2d"); c.translate(8, 8); c.scale(SCALE, SCALE);
+      const K = SCALE * d.s;
+      cv.width = Math.ceil(d.w * K) + 16; cv.height = Math.ceil(d.h * K) + 16;
+      const c = cv.getContext("2d"); c.translate(8, 8); c.scale(K, K);
       c.drawImage(d.img, 0, 0, d.w, d.h);
-      c.strokeStyle = "rgba(120,120,120,.6)"; c.lineWidth = 1 / SCALE; c.beginPath();
+      c.strokeStyle = "rgba(120,120,120,.6)"; c.lineWidth = 1 / K; c.beginPath();
       d.hull.forEach(([x, y], k) => (k ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.stroke();
       const dot = (x, y, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); };
       for (const p of d.points) { if (p.hang) dot(p.x, p.y, "#2E86C1"); if (p.grab) dot(p.x, p.y, "#C0392B"); }
@@ -68,7 +71,7 @@ fetch("../assets/monkeys/monkeys.json").then((r) => r.json()).then(async (data) 
       card.insertAdjacentHTML("beforeend",
         `重さ <span class="${heavy ? "heavy" : ""}">${d.weight.toFixed(2)}（${heavy ? "重い" : "軽い"}）</span><br>` +
         `つかむ：${count(d.points, "grab")}<br>ぶら下がれる：${count(d.points, "hang")}<br>` +
-        `<span class="no">大きさ ${d.w}×${d.h}</span>`);
+        `<span class="no">大きさ ${d.w}×${d.h}${d.s !== 1 ? `（×${d.s}）` : ""}</span>`);
       grid.appendChild(card);
     }
   };

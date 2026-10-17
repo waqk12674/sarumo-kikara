@@ -24,7 +24,7 @@ export function grabWorld(m, i) {
 // つかむ判定に使う線分：手の先から、こぶしの長さだけ体の下へ（見た目のこぶしが枝にふれていればつかめる）
 export function fistSeg(m, i) {
   const a = pointW(m, i);
-  return { a, b: Vector.add(a, Vector.rotate({ x: 0, y: C.FIST * G.SZ }, m.body.angle)) };
+  return { a, b: Vector.add(a, Vector.rotate({ x: 0, y: C.FIST * m.type.k }, m.body.angle)) };
 }
 
 // 手 i がつかめる先を探す（枝か、ほかのサルの空いている hang 点）

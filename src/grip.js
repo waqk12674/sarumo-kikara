@@ -68,7 +68,7 @@ export function stepGrip() {
     if (count && play) {
       m.grabs.forEach((g, i) => {
         if (!g) return;
-        const torn = G.simT - g.at > cfg.GRAB.TEAR_AFTER && dist(pointW(m, i), grabWorld(m, i)) > cfg.GRAB.TEAR * G.SZ;
+        const torn = G.simT - g.at > cfg.GRAB.TEAR_AFTER && dist(pointW(m, i), grabWorld(m, i)) > cfg.GRAB.TEAR * m.type.k;
         if (g.stamina <= 0 || g.strain > C.LIMIT || torn) { release(m, i); m.lastLetGo = G.simT; }
       });
     }

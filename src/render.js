@@ -154,16 +154,16 @@ function drawMonkey(c, m, glow) {
   // 焦り汗（漫画ふう）：頭の横に、先を上へ向けて頭の側へ少し傾けたしずくを、間をあけて扇形に並べる。
   // 飛ばさず、その場でぴくぴく揺れる
   if (v.sweat > 0.05) {
-    const hx = t.head.x - m.shift.x, hy = t.head.y - m.shift.y + 9 * G.SZ; // head は頭の上寄りなので、こめかみの高さまで下げる
+    const hx = t.head.x - m.shift.x, hy = t.head.y - m.shift.y + 9 * t.k; // head は頭の上寄りなので、こめかみの高さまで下げる
     const side = hx >= 0 ? 1 : -1; // 頭が体の中心より右なら右側に出す
     const n = v.sweat > 0.6 ? 3 : v.sweat > 0.3 ? 2 : 1;
     c.globalAlpha = Math.min(1, v.sweat * 2);
     for (let k = 0; k < n; k++) {
       const a = -0.9 + k * 0.75; // こめかみの上から横・少し下へ（右側の角度。左側は鏡写し）
-      const twitch = Math.sin(tn * 9 + k * 1.7) * 1.2 * G.SZ;
-      const rr = 19 * G.SZ + twitch;
+      const twitch = Math.sin(tn * 9 + k * 1.7) * 1.2 * t.k;
+      const rr = 19 * t.k + twitch;
       const x = hx + side * Math.cos(a) * rr, y = hy + Math.sin(a) * rr;
-      drawDrop(c, x, y, (3.8 + v.sweat * 1.2 - k * 0.4) * G.SZ, -side * (0.45 + k * 0.12)); // 先を上へ、頭の側へ傾ける
+      drawDrop(c, x, y, (3.8 + v.sweat * 1.2 - k * 0.4) * t.k, -side * (0.45 + k * 0.12)); // 先を上へ、頭の側へ傾ける
     }
     c.globalAlpha = 1;
   }

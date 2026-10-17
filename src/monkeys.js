@@ -1,5 +1,5 @@
 // サルの種類：assets/monkeys の白黒の絵と monkeys.json（形式は SPEC.md §4）
-import { G, CAT } from "./state.js";
+import { G, CAT, cfg } from "./state.js";
 const { Bodies, Body, Vertices, Vector } = Matter;
 
 export const TYPES = [];
@@ -19,11 +19,12 @@ export async function loadMonkeys() {
   await Promise.all(ready);
 }
 
-// サルの大きさ（木に対する倍率）。絵・当たり判定・手足の位置をまとめて拡大する
+// サルの大きさ（木に対する倍率）。絵・当たり判定・手足の位置をまとめて拡大する。
+// 種ごとの倍率 SPECIES_SIZE も掛ける（重さは当たり判定の面積で決まるので、大きいほど重く、握力も強くなる）
 export function applyScale(k) {
   G.SZ = k;
   for (const t of TYPES) {
-    const d = t.d, hull = d.hull.map(([x, y]) => ({ x: x * k, y: y * k })), c = Vertices.centre(hull);
+    const s = cfg.SPECIES_SIZE[t.id], k = (t.k = G.SZ * (s > 0 ? s : 1)), d = t.d, hull = d.hull.map(([x, y]) => ({ x: x * k, y: y * k })), c = Vertices.centre(hull);
     t.w = d.w * k; t.h = d.h * k; t.c = c;
     t.verts = hull.map((p) => ({ x: p.x - c.x, y: p.y - c.y }));
     t.points = d.points.map((p) => ({ x: p.x * k - c.x, y: p.y * k - c.y, kind: p.kind, grab: p.grab, hang: p.hang }));
