@@ -9,8 +9,7 @@ import { onResult } from "./ranking.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
-const SHARE_W = 1200, SHARE_H = 630, SHARE_TOP = 78; // Xでシェアの画像（上の帯に題字と点数、その下が絵）
-const WIDE_W = SHARE_W, WIDE_H = SHARE_H - SHARE_TOP;
+const WIDE_W = 1200, WIDE_H = 630; // Xでシェアの画像（全面が絵。題字と点数は入れない）
 const URL = "https://waqk.jp/sarumo-kikara/" + (LANG === "en" ? "en/" : "");
 
 // サルたちに寄って撮る（サルがいなければ木の上のほう）
@@ -142,22 +141,13 @@ function buildCard(n, total, best) {
   return c;
 }
 
-// 1200×630：上の帯に題字と点数を小さく、その下にサルがいちばん集まっている所に寄った横長の絵
+// 1200×630：サルがいちばん集まっている所に寄った横長の絵に、和紙の質感を重ねる
 function buildShare() {
   const c = document.createElement("canvas");
-  c.width = SHARE_W; c.height = SHARE_H;
+  c.width = WIDE_W; c.height = WIDE_H;
   const g = c.getContext("2d");
-  g.fillStyle = "#EDE7D9"; g.fillRect(0, 0, SHARE_W, SHARE_TOP);
-  g.drawImage(G.best.wide, 0, SHARE_TOP);
-  g.fillStyle = "rgba(90,78,64,.5)"; g.fillRect(0, SHARE_TOP - 1, SHARE_W, 2);
-  g.textBaseline = "alphabetic"; g.fillStyle = COLOR.SUMI;
-  g.textAlign = "left"; g.font = `800 34px ${FONT}`; g.fillText(T.CARD_TITLE, 36, 52);
-  // 右に「スコア 31 点」（数字だけ大きく朱で）
-  const parts = [[`${T.CARD_SCORE} `, "700 28px", COLOR.USUZUMI], [String(G.score), "800 46px", COLOR.SHU], [` ${T.CARD_PT}`, "700 28px", COLOR.SUMI]];
-  const width = (t, f) => { g.font = `${f} ${FONT}`; return g.measureText(t).width; };
-  let x = SHARE_W - 36 - parts.reduce((a, [t, f]) => a + width(t, f), 0);
-  for (const [t, f, col] of parts) { const tw = width(t, f); g.fillStyle = col; g.fillText(t, x, 54); x += tw; }
-  g.fillStyle = g.createPattern(PAPER_TILE, "repeat"); g.fillRect(0, 0, SHARE_W, SHARE_H);
+  g.drawImage(G.best.wide, 0, 0);
+  g.fillStyle = g.createPattern(PAPER_TILE, "repeat"); g.fillRect(0, 0, WIDE_W, WIDE_H);
   return c;
 }
 const jpeg = (c, q) => new Promise((ok) => c.toBlob(ok, "image/jpeg", q));
