@@ -6,6 +6,7 @@ import { play } from "./audio.js";
 const { Body, Composite, Constraint, Vector } = Matter;
 
 const C = cfg.GRAB;
+const isHeavy = (m) => m.body.mass / G.M0 >= C.HEAVY;
 
 // 自分の下にぶら下がっている仲間（子孫）
 function descendants(m, set = new Set()) {
@@ -44,7 +45,7 @@ export function findTarget(m, i, range) {
     // 枝なら「1本目のつかみ位置＋今の手と手のずれ」ぴったりの位置に添える
     const fi = m.grabs.indexOf(first), q = Vector.add(grabWorld(m, fi), Vector.sub(hp, pointW(m, fi)));
     const pc = first.piece, c0 = closest(q, pc.a, pc.b);
-    if (dist(q, c0) - pc.t / 2 <= C.SECOND_ON_BRANCH && dist(hp, q) < range && dist(c0, pc.a) >= C.BASE_CLEAR)
+    if (dist(q, c0) - pc.t / 2 <= C.SECOND_ON_BRANCH && dist(hp, q) < range && dist(c0, pc.a) >= (pc.seg ? 0 : C.BASE_CLEAR))
       return { kind: "tree", piece: pc, point: q, second: true };
     return null;
   }
@@ -62,7 +63,7 @@ export function findTarget(m, i, range) {
       for (let k = 0; k <= C.SLIDE_TRIES; k++) {
         const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * C.SLIDE_STEP;
         const t = (q0.x - p.a.x) * ux + (q0.y - p.a.y) * uy + off;
-        if (t < C.BASE_CLEAR || t > len) continue; // 幹のそばの付け根はつかめない
+        if (t < (p.seg ? 0 : C.BASE_CLEAR) || t > len) continue; // 幹のそばの付け根はつかめない（根元の区間だけ）
         const q = { x: p.a.x + ux * t, y: p.a.y + uy * t }, d = reach(q) - p.t / 2;
         if (d >= bd) continue;
         if (!free(q) || !fit(q)) continue;
@@ -133,7 +134,7 @@ function grab(m, i, t) {
   g.stamina = m.stam[i]; g.strain = 0; g.at = G.simT;
   c.length = Math.max(C.MIN_LEN, dist(pointW(m, i), t.point)); // いきなり引き寄せず、たぐり寄せる（長さ0は暴れる）
   if (m.grabs.some(Boolean)) { c.stiffness = C.SECOND_STIFFNESS; c.damping = C.SECOND_DAMPING; } // 2本目は添えるだけ
-  else play("grab");
+  else play(isHeavy(m) ? "grab_heavy" : "grab");
   Composite.add(G.world, c);
   m.grabs[i] = g;
   scoreNew(m);
@@ -179,7 +180,11 @@ export function autoGrab() {
     const got = tryGrabAll(m);
     if (got && now() - m.releasedAt < 4000 && !m.popped) {
       m.popped = true;
-      pop(m.body.position.x, m.body.position.y - 60, T.POP_HOI, 22);
+      // 最初につかまったとき：軽いサルは「ひょい」、重いサルは「ガシッ」（大きく、画面も少し揺れる）。
+      // 鎖ボーナスのときは頭の上に「サル×k」が出るので、重ならないよう体の下のほうに出す
+      const p = m.body.position, py = chainDepth(m) >= 2 ? p.y + m.type.h * 0.35 : p.y - 60;
+      if (isHeavy(m)) { pop(p.x, py, T.POP_GASHI, 30, true); G.shake = Math.max(G.shake, 4); }
+      else pop(p.x, py, T.POP_HOI, 22);
       if (++G.placedSinceHint >= 3) document.getElementById("hint").classList.add("fade");
     }
   }

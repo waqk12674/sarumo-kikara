@@ -1,4 +1,4 @@
-// 音：起動時に assets/audio の WAV を1回だけ読み、AudioBufferSourceNode で鳴らす。ファイルが無ければ無音
+// 音：起動時に assets/audio のファイル（wav・mp3）を1回だけ読み、AudioBufferSourceNode で鳴らす。ファイルが無ければ無音
 import { cfg, T } from "./state.js";
 
 const A = cfg.AUDIO;
@@ -15,7 +15,7 @@ export function loadSounds() {
     applyMute();
   } catch { return; }
   for (const [name, file] of Object.entries(A.FILES)) {
-    fetch(`assets/audio/${file}.wav`)
+    fetch(`assets/audio/${file}`)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
       .then((b) => ctx.decodeAudioData(b))
       .then((buf) => { buffers[name] = buf; if (name === "ambient") startAmbient(); })

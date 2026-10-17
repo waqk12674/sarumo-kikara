@@ -1,7 +1,7 @@
 // 描画：淡い水彩と墨（背景・木・サル・擬音・輪・舞う葉・風の筋・和紙）
 import { G, P, T, COLOR, FONT, ink } from "./state.js";
 import { rng, now, fill } from "./util.js";
-import { BR, GROUND_Y, TRUNK_X, trunkPt, trunkTilt, trunkW, branchEnds } from "./tree.js";
+import { BR, GROUND_Y, TRUNK_X, trunkPt, trunkTilt, trunkW, branchPts } from "./tree.js";
 import { pointW } from "./monkeys.js";
 import { findTarget, fistSeg } from "./grab.js";
 import { selection } from "./input.js";
@@ -62,34 +62,37 @@ function drawBackdrop(c) {
 function drawTree(c) {
   const r = rng(23);
   const sway = Math.sin(G.simT * 1.7) * 0.6 + G.wind.w * 14;
-  const ends = BR.map((b, j) => branchEnds(j));
+  const brPts = BR.map((b, j) => branchPts(j));
   // 葉むら（にじみ）
   const leaves = [];
-  ends.forEach((e, j) => leaves.push([e.b.x + sway * 0.4, e.b.y, BR[j].t * 2.6]));
+  brPts.forEach((pts, j) => { const e = pts[pts.length - 1]; leaves.push([e.x + sway * 0.4, e.y, BR[j].t * 2.6]); });
   const tp = trunkPt(1);
   leaves.push([tp.x + sway * 0.5, tp.y, 50], [tp.x - 40 + sway * 0.5, tp.y + 26, 34], [tp.x + 40 + sway * 0.5, tp.y + 20, 34]);
   for (const [x, y, R] of leaves) {
     blob(c, x, y, R * 1.6, "170,186,150", 0.55);
     for (let k = 0; k < 6; k++) blob(c, x + (r() - 0.5) * R * 1.4, y + (r() - 0.5) * R, R * (0.5 + r() * 0.4), "132,152,114", 0.45);
   }
-  // 枝：しなると、根元から先へ曲がる（しなり量の45%ぶん曲げる）
-  ends.forEach((e, j) => {
-    const b = BR[j], a = e.a, t = e.b, L = b.len;
-    const bend = G.tr.d[j] * b.sg * 0.45, a0 = e.ang - bend;
-    const cp = { x: a.x + Math.cos(a0) * L * 0.55, y: a.y + Math.sin(a0) * L * 0.55 };
-    const w0 = b.t * 1.05, w1 = b.t * 0.48;
-    const n0 = { x: -Math.sin(a0), y: Math.cos(a0) }, n1 = { x: -Math.sin(e.ang), y: Math.cos(e.ang) };
-    c.beginPath();
-    c.moveTo(a.x + (n0.x * w0) / 2, a.y + (n0.y * w0) / 2);
-    c.quadraticCurveTo(cp.x + (n0.x * (w0 + w1)) / 4, cp.y + (n0.y * (w0 + w1)) / 4, t.x + (n1.x * w1) / 2, t.y + (n1.y * w1) / 2);
-    c.lineTo(t.x - (n1.x * w1) / 2, t.y - (n1.y * w1) / 2);
-    c.quadraticCurveTo(cp.x - (n0.x * (w0 + w1)) / 4, cp.y - (n0.y * (w0 + w1)) / 4, a.x - (n0.x * w0) / 2, a.y - (n0.y * w0) / 2);
-    c.closePath();
+  // 枝：当たり判定と同じ折れ線を、根元から先へ細くなる筆の形で描く（への字の山で折れる）
+  brPts.forEach((pts, j) => {
+    const b = BR[j];
+    let acc = 0;
+    const ws = pts.map((p, k) => { if (k) acc += Math.hypot(p.x - pts[k - 1].x, p.y - pts[k - 1].y); return b.t * (1.05 - 0.57 * acc / b.len); });
+    const nrm = pts.map((p, k) => {
+      const q0 = pts[Math.max(0, k - 1)], q1 = pts[Math.min(pts.length - 1, k + 1)], an = Math.atan2(q1.y - q0.y, q1.x - q0.x);
+      return { x: -Math.sin(an), y: Math.cos(an) };
+    });
+    const side = (sg) => pts.map((p, k) => ({ x: p.x + (sg * nrm[k].x * ws[k]) / 2, y: p.y + (sg * nrm[k].y * ws[k]) / 2 }));
+    const outline = [...side(1), ...side(-1).reverse()];
+    c.beginPath(); outline.forEach((p, k) => (k ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); c.closePath();
     c.fillStyle = "rgba(176,156,128,.95)"; c.fill(); c.strokeStyle = ink(0.8); c.lineWidth = 1.8; c.stroke();
+    // 樹皮のすじ：区間ごとに2本
     c.strokeStyle = ink(0.25); c.lineWidth = 1; c.beginPath();
-    for (let k = 0; k < 3; k++) {
-      const u = 0.2 + k * 0.22, v = u + 0.1;
-      c.moveTo(a.x + (t.x - a.x) * u + n0.x * b.t * 0.15, a.y + (t.y - a.y) * u + n0.y * b.t * 0.15); c.lineTo(a.x + (t.x - a.x) * v, a.y + (t.y - a.y) * v);
+    for (let k = 0; k < pts.length - 1; k++) {
+      const a = pts[k], t = pts[k + 1], n = nrm[k];
+      for (const u of [0.3, 0.65]) {
+        const v = u + 0.12;
+        c.moveTo(a.x + (t.x - a.x) * u + n.x * b.t * 0.15, a.y + (t.y - a.y) * u + n.y * b.t * 0.15); c.lineTo(a.x + (t.x - a.x) * v, a.y + (t.y - a.y) * v);
+      }
     }
     c.stroke();
   });

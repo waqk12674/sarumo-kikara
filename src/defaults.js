@@ -22,13 +22,32 @@ export const DEFAULTS = {
     TRUNK_X: 210,   // 幹の x
     GROUND_Y: 1900, // 根元（地面）の y
     TOP_Y: 196,     // てっぺんの y
-    // 枝：幹の高さ y から先端 tip へ。t は太さ。長さに強弱をつける
+    // 枝：幹の高さ y から、mid（曲がり目）を通って先端 tip へ。mid を書かなければまっすぐ。t は太さ。
+    // 「斜め＋まっすぐ」：下の枝は根元から水平に出て先で斜めに上がり、上の枝は根元から斜めに上がって先が水平。
+    // 同じ側では、上の枝の斜めの部分の下に下の枝の水平な部分がくるので、サルのぶら下がる列が上下で交互にずれる。
+    // 斜めは約36°（手の負担が増える24°より急なので、ぶら下がりにくい）
     BRANCHES: [
-      { y: 600, tip: [-5, 565], t: 17 },   // 左・長い（約218）
-      { y: 445, tip: [425, 400], t: 15 },  // 右・長い（約220）
-      { y: 252, tip: [18, 212], t: 10 },   // 左・長くて細い（約196）
-      { y: 230, tip: [322, 192], t: 10 },  // 右・ふつう（約118）
+      { y: 600, mid: [100, 600], tip: [45, 558], t: 13 },    // 左・下（水平→斜め）
+      { y: 480, mid: [320, 480], tip: [375, 438], t: 12 },   // 右・下（水平→斜め）
+      { y: 350, mid: [100, 270], tip: [-20, 270], t: 15 },   // 左・上（斜め→水平）
+      { y: 230, mid: [320, 150], tip: [440, 150], t: 14 },   // 右・上（斜め→水平）
     ],
+    // 比べるための別の形。URL に ?tree=heji などを付けると BRANCHES の代わりに使う
+    BRANCH_SETS: {
+      heji: [   // への字（ゆるく上がって先が下がる。傾き11〜16°）
+        { y: 600, mid: [135, 578], tip: [70, 592], t: 13 },
+        { y: 480, mid: [285, 458], tip: [350, 472], t: 12 },
+        { y: 350, mid: [90, 315], tip: [-10, 335], t: 15 },
+        { y: 230, mid: [330, 195], tip: [430, 215], t: 14 },
+      ],
+      goho: [   // まっすぐ5本（左右交互、同じ側は上ほど長い）
+        { y: 600, tip: [98, 562], t: 10 },
+        { y: 500, tip: [348, 462], t: 12 },
+        { y: 400, tip: [18, 360], t: 10 },
+        { y: 310, tip: [425, 275], t: 17 },
+        { y: 225, tip: [-5, 180], t: 15 },
+      ],
+    },
     TRUNK_K: 0.065,     // 幹のしなりやすさ（根元まわりのモーメントに掛ける）
     TRUNK_MAX: 280,     // 幹のてっぺんの横ずれの上限
     TRUNK_OMEGA: 2.0,   // 幹のばねの固有角速度
@@ -39,6 +58,7 @@ export const DEFAULTS = {
     BRANCH_OMEGA: 5,    // 枝のばねの固有角速度
     BRANCH_ZETA: 0.5,   // 枝のばねの減衰比
     WIND_ON_TREE: 900,  // 木そのものが受ける風の強さ
+    WIND_BEND: 0.1,     // 風で木がしなる割合（1でモックと同じ。0で風ではしならない）。曲がりすぎるとサルどうしが重なって遊びにくいので小さく
   },
 
   // ---------------------------------------------------------------
@@ -63,6 +83,7 @@ export const DEFAULTS = {
     TEAR_AFTER: 0.3,      // つかんでこの秒数より後だけ、引きはがしを判定する
     NUMB_SEC: 3,          // 力尽きた手がしびれてつかめない秒数
     REGRAB_WAIT: 0.6,     // 手を離したあと、残りの手でつかみ直さない秒数
+    HEAVY: 1.05,          // この重さ（ニホンザル=1）以上のサルは、つかんだとき「ガシッ」。軽いサルは「ひょい」
     SEP_K: 0.35,          // 重なったサルどうしが左右に押し合う力（×重さ）
     MAX_SPIN: 0.12,       // 回転速度の上限
     MAX_SPEED: 14,        // 速度の上限
@@ -130,23 +151,24 @@ export const DEFAULTS = {
   },
 
   // ---------------------------------------------------------------
-  // 8. AUDIO — 音（assets/audio/<ファイル名>.wav。作り直しは python tools/make_se.py）
+  // 8. AUDIO — 音（assets/audio/ のファイル。合成した .wav の作り直しは python tools/make_se.py）
   // ---------------------------------------------------------------
   AUDIO: {
     MASTER: 0.8,          // 全体の音量（0〜1）
-    FILES: {              // 用途 → ファイル名
-      pon: "se_pon",       // 札から引っぱる・持ち上げる
-      grab: "se_grab",     // つかむ（拍子木）
-      chain: "se_chain",   // 鎖ボーナス（鼓）
-      slip: "se_slip",     // ずるっ
-      fall: "se_fall",     // あっ（全部の手が離れた）
-      wind: "se_wind",     // 風の予告
-      thud: "se_thud",     // ぽとっ（地面）
-      result: "se_result", // 結果画面
-      ambient: "amb_forest", // 環境音（鳥のさえずり。ループ）
+    FILES: {              // 用途 → assets/audio のファイル名（.mp3 は運営者が用意した録音、.wav は合成）
+      pon: "se_pon.mp3",       // 札から引っぱる・持ち上げる（「よっと」）
+      grab: "se_grab.mp3",     // 軽いサルがつかむ
+      grab_heavy: "se_grab_heavy.mp3", // 重いサルがつかむ
+      chain: "se_chain.wav",   // 鎖ボーナス（「じゃらーん」）
+      slip: "se_slip.wav",     // ずるっ
+      fall: "se_fall.mp3",     // あっ（全部の手が離れて落ちる）
+      wind: "se_wind.wav",     // 風の予告
+      thud: "se_thud.wav",     // ぽとっ（地面）
+      result: "se_result.wav", // 結果画面
+      ambient: "amb_forest.wav", // 環境音（鳥のさえずり。ループ）
     },
     VOLUME: {             // 用途ごとの音量（0〜1）
-      pon: 0.45, grab: 0.6, chain: 0.8, slip: 0.5, fall: 0.45, wind: 0.6, thud: 0.9, result: 0.8, ambient: 0.1,
+      pon: 0.22, grab: 0.8, grab_heavy: 0.75, chain: 0.8, slip: 0.5, fall: 0.26, wind: 0.6, thud: 0.9, result: 0.8, ambient: 0.1,
     },
     CHAIN_RATE_STEP: 0.07, // 鎖ボーナスの音：深さ1段ごとに音を高くする割合
     CHAIN_RATE_MAX: 1.7,   // 鎖ボーナスの音の高さの上限（倍）
@@ -160,11 +182,12 @@ export const DEFAULTS = {
     ja: {
       BOOT_FAIL: "サルの絵を読み込めませんでした。再読み込みしてください。",
       POP_HOI: "ひょい",
+      POP_GASHI: "ガシッ",
       POP_ZURU: "ずるっ",
       POP_A: "あっ",
       POP_YOISHO: "よいしょ",
       POP_POTO: "ぽとっ",
-      CHAIN: "鎖 ×{k}",
+      CHAIN: "サル×{k}",
       PLUS: "+{k}",
       WIND_L: "← 風",
       WIND_R: "風 →",
@@ -186,11 +209,12 @@ export const DEFAULTS = {
     en: {
       BOOT_FAIL: "Couldn't load the monkeys. Please reload.",
       POP_HOI: "Hup!",
+      POP_GASHI: "Clamp!",
       POP_ZURU: "Slip!",
       POP_A: "Uh-oh",
       POP_YOISHO: "Heave",
       POP_POTO: "Thud",
-      CHAIN: "Chain ×{k}",
+      CHAIN: "Monkey ×{k}",
       PLUS: "+{k}",
       WIND_L: "← Wind",
       WIND_R: "Wind →",

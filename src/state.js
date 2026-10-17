@@ -13,6 +13,7 @@ export const CAT = { G: 1, T: 2, M: 4 }; // ぶつかり判定の種類：地面
 const q = new URLSearchParams(location.search);
 export const DEBUG = q.get("debug") === "1";
 export const GOD = q.get("god") === "1";
+export const TREE_SET = q.get("tree"); // 枝の形を TREE.BRANCH_SETS のものに切り替える（比べるため）
 const SEED = q.has("seed") ? Number(q.get("seed")) >>> 0 : null;
 let runs = 0;
 export const newRand = () => (SEED === null ? Math.random : rng(SEED + runs++));

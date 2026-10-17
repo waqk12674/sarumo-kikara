@@ -114,8 +114,42 @@ def clack(f=1, dur=0.12):
     return mix((hit, 0.6), (p1, 0.9), (p2, 0.45), (p3, 0.2))
 
 
+def shamisen(r, f, dur, decay):
+    """三味線をはじいた音：倍音（高いほど早く消える）＋撥の当たる音＋サワリのビーンという響き。
+    f は音の高さを返す関数（はじいたあとに音の高さを動かすとコミカルになる）"""
+    k, ph, out = n(dur), 0.0, []
+    for i in range(k):
+        ph += TAU * f(i) / SR
+        t = i / SR
+        out.append(sum(math.sin(h * ph) / h ** 0.8 * math.exp(-decay * (1 + 0.35 * h) * t) for h in range(1, 11)))
+    buzz = bandpass([r.uniform(-1, 1) for _ in range(k)], 3200, 2.0)
+    out = [v + 0.25 * b * math.exp(-decay * 1.5 * i / SR) * (0.5 + 0.5 * math.sin(ph)) for i, (v, b) in enumerate(zip(out, buzz))]
+    bachi = bandpass([r.uniform(-1, 1) for _ in range(n(0.01))], 2600, 1.2)
+    place(out, bachi, 0, 0.6)
+    return out
+
+
 def grab():
-    return fade_edges(room(clack(), 0.12))
+    """軽いサルがつかむ：三味線を高くはじいて、音の高さを「ぺんっ↗」と上へ跳ね上げる"""
+    noise(n(0.006))  # 前の版（拍子木）と同じだけ共通の乱数を進め、あとに作る音を変えない
+    r = random.Random(41)
+    up = lambda i: 660 * (1.5 ** (1 - (1 - min(1, i / n(0.06))) ** 2))  # すぐに5度上へ
+    return fade_edges(room(shamisen(r, up, 0.35, 9), 0.08), 0.002, 0.04)
+
+
+def grab_heavy():
+    """重いサルがつかむ：和太鼓の「ドン」に、低い三味線の「べんっ↘」（音の高さが下がる）を重ねる"""
+    r = random.Random(53)
+    k = n(0.55)
+    don = tone(k, lambda i: 58 + 40 * math.exp(-i / n(0.04)), 7)
+    skin = lowpass([r.uniform(-1, 1) for _ in range(n(0.05))], 400)
+    skin = [v * math.exp(-40 * i / SR) for i, v in enumerate(skin)]
+    down = lambda i: 220 * (0.75 ** min(1, i / n(0.08)))
+    x = [0.0] * k
+    place(x, don, 0, 1.0)
+    place(x, skin, 0, 0.8)
+    place(x, shamisen(r, down, 0.45, 6), n(0.03), 0.55)
+    return fade_edges(room(x, 0.15))
 
 
 def pluck(f, dur, r, damp=0.996):
@@ -215,7 +249,14 @@ def forest(sec=12.0, xf=0.5):
 
 
 if __name__ == "__main__":
+    # 運営者が用意した録音（assets/audio/*.mp3）に差し替えた音は書き出さない。
+    # 作る処理は残す（共通の乱数を同じだけ進めて、ほかの合成音を変えないため）
+    RECORDED = {"se_pon", "se_grab", "se_fall", "se_grab_heavy"}
     for name, f in (("se_pon", pon), ("se_grab", grab), ("se_chain", chain), ("se_slip", slip), ("se_fall", fall),
                     ("se_wind", wind), ("se_thud", thud), ("se_result", result)):
-        save(name, f())
+        x = f()
+        if name not in RECORDED:
+            save(name, x)
     save("amb_forest", forest(), half=True)
+    if "se_grab_heavy" not in RECORDED:
+        save("se_grab_heavy", grab_heavy())  # あとから足した音は最後に作る（共通の乱数を進めて、前の音を変えないため）
