@@ -5,6 +5,7 @@ import { blob, drawScene, PAPER_TILE } from "./render.js";
 import { attached, groups } from "./grab.js";
 import { setWindBanner } from "./wind.js";
 import { play } from "./audio.js";
+import { onResult } from "./ranking.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
@@ -58,6 +59,7 @@ export async function finish() {
   document.getElementById("cardImg").src = card.toDataURL("image/png");
   document.getElementById("result").hidden = false;
   play("result");
+  onResult({ score: G.score, monkeys: placed, secs: Math.round(G.simT * 10) / 10 });
 }
 
 function outlined(g, text, x, y, lw) {

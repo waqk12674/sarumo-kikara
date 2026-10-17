@@ -107,6 +107,21 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .card #share{background:var(--shu);border-color:var(--shu);color:var(--kinari);font-weight:800}
 .card .tip .pill{flex:0 1 auto;padding:7px 18px;font-size:13px}
 .card p{margin:0;font-size:12px;line-height:1.7;color:var(--usuzumi);text-align:center}
+.card img{max-height:46vh}
+.rank{border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.rank h2,.rankDialog h2{margin:0;font-size:14px;font-weight:800;text-align:center;letter-spacing:.1em}
+.rank .reg input{flex:1 1 auto;min-width:0;box-sizing:border-box;font:inherit;font-size:14px;padding:7px 10px;border:1.5px solid var(--line);border-radius:999px;background:#fffdf7;color:var(--sumi)}
+.rank .reg .pill{flex:0 0 auto}
+.rank ol,.rankDialog ol{margin:0;padding:0 0 0 2.2em;font-size:13px;line-height:1.75;font-variant-numeric:tabular-nums}
+.rank li,.rankDialog li{border-bottom:1px dotted rgba(90,78,64,.3)}
+.rank li span,.rankDialog li span{display:inline-block;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.rank li b,.rankDialog li b{float:right;font-weight:700}
+.rank li.me,.rankDialog li.me{color:var(--shu);font-weight:800}
+.rank li.empty,.rankDialog li.empty{list-style:none;margin-left:-2.2em;text-align:center;color:var(--usuzumi)}
+.rankDialog{width:min(340px,calc(100% - 32px));box-sizing:border-box;background:var(--kinari);color:var(--sumi);border:1.5px solid var(--line);border-radius:14px;padding:14px;font-family:var(--font-mincho)}
+.rankDialog::backdrop{background:var(--scrim)}
+.rankDialog p{margin:6px 0;font-size:12px;color:var(--usuzumi);text-align:center}
+.rankDialog .pill{display:block;margin:10px auto 0;border:1.5px solid var(--line);border-radius:999px;padding:8px 22px;font-weight:700;background:rgba(240,233,219,.88)}
 #boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 16px;text-align:center}
 @media (prefers-reduced-motion:reduce){.hint{transition:none}}
 </style>
@@ -135,6 +150,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
   <button class="chip" id="resetBtn">やり直す</button>
   <div class="right">
     <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune" hidden>調整</button>
+    <button class="chip" id="rankBtn" aria-haspopup="dialog">ランキング</button>
     <button class="chip" id="muteBtn" aria-pressed="false">音 あり</button>
   </div>
 </div>
@@ -159,9 +175,23 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
       <button class="pill" data-waqk-more-button>ほかのゲーム</button>
     </div>
     <div class="row tip"><a class="pill" href="https://ofuse.me/o?uid=225115" target="_blank" rel="noopener">開発者を応援</a></div>
+    <!-- ランキング（src/ranking.js）。登録は1〜8文字のニックネーム -->
+    <section class="rank">
+      <h2>ランキング</h2>
+      <div class="row reg" id="rankReg"><input id="rankName" maxlength="8" autocomplete="nickname" placeholder="ニックネーム（8文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill">登録</button></div>
+      <p id="rankMsg" aria-live="polite" hidden></p>
+      <ol id="rankList"></ol>
+    </section>
     <p>画像は長押し（PCは右クリック）で保存できます。</p>
   </div>
 </div>
+
+<dialog class="rankDialog" id="rankDialog" aria-labelledby="rankDlgTitle">
+  <h2 id="rankDlgTitle">ランキング（TOP10）</h2>
+  <p id="rankDlgMsg" aria-live="polite" hidden></p>
+  <ol id="rankDlgList"></ol>
+  <button class="pill" id="rankClose">閉じる</button>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script>if(!window.Matter)document.getElementById("boot").textContent="物理エンジンを読み込めませんでした。再読み込みしてください。";</script>

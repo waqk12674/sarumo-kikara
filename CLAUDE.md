@@ -19,12 +19,14 @@
 - `share/`：Xシェア用の中継ページ（予定。OGP画像を作るときに一緒に作る。今のシェアの URL は `https://waqk.jp/sarumo-kikara/`）
 - `mock/`：引き継ぎ時点のモック（参考用。公開しない）
 - 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す。テスト版の URL は https://sarumo-kikara.waqk12674.workers.dev/（GitHub の main に push すると Workers Builds で自動デプロイ）
+- ランキング（2026-10-17）：`worker/index.js`（`GET/POST api/scores`）＋ D1 `sarumo-kikara-scores`（id `6c5d4df5-2176-43a2-a84e-604aa6521841`、表は `schema.sql`）。画面側は `src/ranking.js`。Worker が動くのは `run_worker_first` の `/api/*`・`/sarumo-kikara/api/*` だけ。`worker/`・`schema.sql` は `.assetsignore` の許可リストに入っていないので公開されない。テスト版の記録は本公開のときに `DELETE FROM scores` で消す
 
 ## 確認のしかた
 
 - ローカルサーバー：`python -m http.server 8124`（石の上にも三年の8123と分ける）
 - URLパラメータ：`?debug=1`（調整パネルと数値表示。コンソールに `__saru`：`step(n)` で物理を進められる）、`?seed=N`、`?god=1`（落ちない）
 - ブラウザのペインが隠れているとループ（requestAnimationFrame）が止まる。自動で確かめるときは `__saru.step(n)` で進める
+- ランキングの API は `python -m http.server` では動かない（「オンライン版だけ」と出る）。Worker ごと確かめるときは、D1 の表を `npx wrangler d1 execute sarumo-kikara-scores --local --persist-to <フォルダの外> --file=schema.sql` で作ってから `npx wrangler dev --port 8790 --persist-to <フォルダの外>`。止めるときは node の wrangler と workerd の両方を止める（片方だけだと workerd が立ち直る）
 - `python -m http.server` だと、直した src/*.js がブラウザのキャッシュから古いまま読まれることがある。確かめる前に `fetch(path,{cache:"reload"})` で取り直すか、ハード再読み込みする
 - 物理の変更をしたら、次の3つの場面で暴れないか確かめる：①枝の先に4匹かためる ②マウスで勢いよく運んで離す ③10匹以上の鎖に風
 
@@ -47,6 +49,7 @@
 - 操作は「ドラッグ＋自動でつかむ」に固定。モックの「落とす」「ガシッ」は消した。調整パネルは `?debug=1` のときだけ（2026-10-17）
 - 調整値の初期値はモックのまま（握力5・疲れやすさ1・風1・サルの大きさ1.5・ふんばり1・つかめる距離16）（2026-10-17）
 - 音（2026-10-17）：「よっと」「軽い」「重い」「落下」は運営者の録音、ほかは合成。SE は8場面（札・持ち上げ「よっと」／つかむ（重さ `GRAB.HEAVY`=1.05 以上は擬音「ガシッ」と重い音、それより軽いと擬音「ひょい」と軽い音）／鎖ボーナス（深いほど高い）／ずるっ／あっ（落下の音）／風の予告／ぽとっ／結果）。環境音（鳥のさえずりだけ）は最初のタップから小さくループ。風の音は風の予告のときだけで、ふだんは鳴らさない。BGM なし。ミュートボタンは右下（`skk_muted`）
+- ランキングは全期間 TOP10・1人（端末）1記録。結果画面で名前（1〜8文字）を入れて登録したときだけ載る。結果画面と画面下の札から見られる（SPEC.md §9b）（2026-10-17）
 - 結果画面のボタンは WAQK 共通の4つ（Xでシェア・もう一度・ほかのゲーム・開発者を応援）。画像は長押しで保存（2026-10-17）
 
 ## 運営ルール（WAQK 共通）
@@ -56,5 +59,5 @@
 - 広告は AdSense 承認後、結果→「もう一回」などの区切りだけ。プレイ中・開始前・操作のたびには出さない。クリックを誘う文言は使わない
 - 画面サイズ固定（ドラッグでページがスクロールしない）
 - 配信は「ゲームごとの Worker ルート `waqk.jp/sarumo-kikara/*`＋`_redirects` の `/sarumo-kikara/* /:splat 200` で静的配信」。run_worker_first は処理が必要なパスだけ。`.assetsignore` は許可リスト方式
-- localStorage のキーは `skk_` で始める
+- localStorage のキーは `skk_` で始める（`skk_muted`・`skk_player`・`skk_name`）
 - 公開URL・OGPのURLは `https://waqk.jp/sarumo-kikara/` で書く

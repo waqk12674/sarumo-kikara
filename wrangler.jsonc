@@ -7,9 +7,17 @@
   // 本公開のときに "routes": [{ "pattern": "waqk.jp/sarumo-kikara/*", "zone_name": "waqk.jp" }] と
   // _redirects（/sarumo-kikara/* /:splat 200）を足す（手本は dashimaki）
   "workers_dev": true,
-  // 静的ファイルだけを配信する（Worker のスクリプトはないので、Workers のリクエストに数えない）。
-  // 公開するファイルは .assetsignore の許可リストで決める
+  // ランキングの API（/api/scores）だけを Worker が処理する。それ以外の静的ファイルは Worker を通らない
+  // （Workers のリクエストに数えない）。公開するファイルは .assetsignore の許可リストで決める
+  "main": "worker/index.js",
   "assets": {
-    "directory": "."
-  }
+    "directory": ".",
+    "binding": "ASSETS",
+    // /sarumo-kikara/… は waqk.jp のルートから届くとき、先頭なしは workers.dev・wrangler dev のとき
+    "run_worker_first": ["/sarumo-kikara/api/*", "/api/*"]
+  },
+  // ランキング（表は schema.sql）。テスト版の記録は、本公開のときに消す
+  "d1_databases": [
+    { "binding": "DB", "database_name": "sarumo-kikara-scores", "database_id": "6c5d4df5-2176-43a2-a84e-604aa6521841" }
+  ]
 }

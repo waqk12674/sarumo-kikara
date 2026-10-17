@@ -11,6 +11,7 @@ import { updateNext, dropHeldSilently, clearInput } from "./input.js";
 import { drawScene } from "./render.js";
 import { finish, takeSnap } from "./result.js";
 import { loadSounds, play } from "./audio.js";
+import "./ranking.js";
 const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
 
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
@@ -113,7 +114,7 @@ let last = now(), acc = 0, hudTimer = 0, lastSnap = 0;
 function frame(tn) {
   const dt = Math.min(50, tn - last);
   last = tn;
-  if (G.state !== "result") {
+  if (G.state !== "result" && !G.paused) {
     acc += dt;
     while (acc >= 1000 / 60) { step(); acc -= 1000 / 60; }
     if (G.state === "play") {
