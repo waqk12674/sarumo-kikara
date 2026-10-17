@@ -29,16 +29,18 @@ function frameShot(members, W = SNAP_W, H = SNAP_H) {
   if (w / h < ar) w = h * ar; else h = w / ar;
   return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: W / w };
 }
-// 横長（シェア用）：まわりに仲間がいちばん多いサルを中心に、その近くの仲間がおさまるように寄る
+// 横長（シェア用）：まわりに仲間がいちばん多いサルたちの真ん中に、サルの背丈が絵の高さの CAMERA.SHARE_UP 割になるまで寄る。
+// 全員は入らなくてよい（サルを大きく見せるほうを優先する）
 function frameWide(members) {
-  let near = members;
-  if (members.length) {
-    const r = 2.2 * members.reduce((a, m) => a + m.type.h, 0) / members.length; // 「近く」の距離＝サルの背丈の2.2倍
-    const around = (a) => members.filter((b) => Math.hypot(a.body.position.x - b.body.position.x, a.body.position.y - b.body.position.y) < r);
-    near = [];
-    for (const m of members) { const n = around(m); if (n.length > near.length) near = n; }
-  }
-  return frameShot(near, WIDE_W, WIDE_H);
+  if (!members.length) return frameShot(members, WIDE_W, WIDE_H);
+  const avgH = (ms) => ms.reduce((a, m) => a + m.type.h, 0) / ms.length;
+  const r = 1.5 * avgH(members); // 「近く」の距離＝サルの背丈の1.5倍
+  const around = (a) => members.filter((b) => Math.hypot(a.body.position.x - b.body.position.x, a.body.position.y - b.body.position.y) < r);
+  let near = [];
+  for (const m of members) { const n = around(m); if (n.length > near.length) near = n; }
+  // 中心は、その仲間たちの手の先から足の先までの真ん中（胴の真ん中だと、上げた手や頭が切れやすい）
+  const fr = frameShot(near, WIDE_W, WIDE_H);
+  return { cx: fr.cx, cy: fr.cy, s: cfg.CAMERA.SHARE_UP * WIDE_H / avgH(near) };
 }
 function renderShot(fr, canvas, W = SNAP_W, H = SNAP_H) {
   canvas.width = W; canvas.height = H;
