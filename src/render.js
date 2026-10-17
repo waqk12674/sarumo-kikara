@@ -206,7 +206,7 @@ function drawAir(c, cw, ch, k) {
   }
 }
 
-// 場面を描く。opt.fx：画面用（選択・つかめる範囲・輪）。opt.popScale：撮影用の擬音の大きさ
+// 場面を描く。opt.fx：画面用（選択・つかめる範囲・輪・紙吹雪・擬音・光り）。結果画像の撮影では fx なし
 export function drawScene(c, cw, ch, s, ox, oy, opt) {
   c.setTransform(1, 0, 0, 1, 0, 0);
   const sky = c.createLinearGradient(0, 0, 0, ch);
@@ -234,7 +234,6 @@ export function drawScene(c, cw, ch, s, ox, oy, opt) {
     }
   }
   if (opt.fx) drawFx(c);
-  else if (opt.popScale) drawPops(c, opt.popScale);
   c.setTransform(1, 0, 0, 1, 0, 0);
   if (opt.leaves !== false) drawAir(c, cw, ch, Math.max(1, cw / 700));
   c.fillStyle = c.createPattern(PAPER_TILE, "repeat"); c.fillRect(0, 0, cw, ch);

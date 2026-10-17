@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サルの一覧（確認用）</title>
+<!-- 手元の確認用。python -m http.server 8124 で http://localhost:8124/tools/monkeys.html を開く（公開はしない） -->
+<style>
+  body { margin: 0; padding: 16px; background: #EFE9DC; color: #3D3833; font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  .legend { font-size: 13px; margin-bottom: 10px; line-height: 1.8; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 3px 0 10px; vertical-align: -1px; }
+  .bar { margin-bottom: 12px; font-size: 13px; }
+  .bar button { font: inherit; padding: 3px 10px; margin-right: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: #F6F0E2; border: 1px solid rgba(90,78,64,.4); border-radius: 8px; padding: 8px; font-size: 12px; line-height: 1.6; }
+  .card b { font-size: 14px; }
+  .card canvas { display: block; margin: 4px auto; background: #fffdf7; border-radius: 4px; }
+  .heavy { color: #B5655A; font-weight: 700; }
+  .no { color: #7A7068; }
+</style>
+</head>
+<body>
+<h1>サルの一覧（24種）</h1>
+<div class="legend">
+  <i style="background:#C0392B"></i>つかむ点（手・足・尻尾）
+  <i style="background:#2E86C1"></i>ぶら下がれる点（仲間がつかめる）
+  <i style="background:#27AE60"></i>汗の位置の目安（head）
+  ／ 薄い灰色の線＝当たり判定（hull）
+  ／ 重さはニホンザル＝1（当たり判定の面積で比べる。ゲームと同じ）。<span class="heavy">1.05 以上は「重い」</span>（ガシッ）
+</div>
+<div class="bar">並べ方：<button data-sort="json">データの順</button><button data-sort="weight">重さの順</button></div>
+<div class="grid" id="grid"></div>
+<script>
+const KIND = { hand: "手", foot: "足", tail: "尻尾" };
+const HEAVY = 1.05, SCALE = 1.6; // 表示の倍率
+const area = (h) => Math.abs(h.reduce((s, [x, y], i) => { const [x2, y2] = h[(i + 1) % h.length]; return s + x * y2 - x2 * y; }, 0)) / 2;
+const count = (pts, key) => {
+  const c = {};
+  for (const p of pts) if (p[key]) c[KIND[p.kind]] = (c[KIND[p.kind]] || 0) + 1;
+  return Object.entries(c).map(([k, n]) => k + n).join("・") || "なし";
+};
+fetch("../assets/monkeys/monkeys.json").then((r) => r.json()).then(async (data) => {
+  const ref = area(data.find((d) => d.id === "nihonzaru").hull);
+  const list = await Promise.all(data.map((d, i) => new Promise((ok) => {
+    const img = new Image();
+    img.onload = () => ok({ ...d, i, img, weight: area(d.hull) / ref });
+    img.src = "../assets/monkeys/" + d.file;
+  })));
+  const grid = document.getElementById("grid");
+  const show = (order) => {
+    grid.innerHTML = "";
+    const items = [...list].sort(order === "weight" ? (a, b) => a.weight - b.weight : (a, b) => a.i - b.i);
+    for (const d of items) {
+      const card = document.createElement("div"); card.className = "card";
+      const cv = document.createElement("canvas");
+      cv.width = Math.ceil(d.w * SCALE) + 16; cv.height = Math.ceil(d.h * SCALE) + 16;
+      const c = cv.getContext("2d"); c.translate(8, 8); c.scale(SCALE, SCALE);
+      c.drawImage(d.img, 0, 0, d.w, d.h);
+      c.strokeStyle = "rgba(120,120,120,.6)"; c.lineWidth = 1 / SCALE; c.beginPath();
+      d.hull.forEach(([x, y], k) => (k ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.stroke();
+      const dot = (x, y, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); };
+      for (const p of d.points) { if (p.hang) dot(p.x, p.y, "#2E86C1"); if (p.grab) dot(p.x, p.y, "#C0392B"); }
+      dot(d.head[0], d.head[1], "#27AE60");
+      const heavy = d.weight >= HEAVY;
+      card.innerHTML = `<b>${d.i + 1}. ${d.name}</b><br><span class="no">${d.id}</span>`;
+      card.appendChild(cv);
+      card.insertAdjacentHTML("beforeend",
+        `重さ <span class="${heavy ? "heavy" : ""}">${d.weight.toFixed(2)}（${heavy ? "重い" : "軽い"}）</span><br>` +
+        `つかむ：${count(d.points, "grab")}<br>ぶら下がれる：${count(d.points, "hang")}<br>` +
+        `<span class="no">大きさ ${d.w}×${d.h}</span>`);
+      grid.appendChild(card);
+    }
+  };
+  document.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => show(b.dataset.sort)));
+  show("json");
+});
+</script>
+</body>
+</html>

@@ -1,8 +1,8 @@
-// 結果：落ちはじめの瞬間を撮っておき、結果画像をつくる（SPEC.md §9）
+// 結果：木にいるサルがいちばん多かった瞬間を撮っておき、結果画像をつくる（SPEC.md §9）
 import { G, cfg, T, COLOR, FONT } from "./state.js";
 import { now, fill } from "./util.js";
 import { blob, drawScene, PAPER_TILE } from "./render.js";
-import { componentOf, attached, groups } from "./grab.js";
+import { attached, groups } from "./grab.js";
 import { setWindBanner } from "./wind.js";
 import { play } from "./audio.js";
 
@@ -10,61 +10,38 @@ const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
 const URL = "https://waqk.jp/sarumo-kikara/";
 
-// 群れに寄って撮る。fallers があれば、落ちはじめの頭と手が下のふちにぎりぎり入るようにする
-function frameShot(members, fallers, extra) {
+// サルたちに寄って撮る（サルがいなければ木の上のほう）
+function frameShot(members) {
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (const m of members) {
     const p = m.body.position, t = m.type;
     x0 = Math.min(x0, p.x - t.w * 0.6 - 8); x1 = Math.max(x1, p.x + t.w * 0.6 + 8);
     y0 = Math.min(y0, p.y - t.h * 0.72); y1 = Math.max(y1, p.y + t.h * 0.55);
   }
-  if (!members.length) {
-    if (fallers && fallers.length) { const p = fallers[0].body.position; x0 = p.x - 80; x1 = p.x + 80; y0 = p.y - 200; y1 = p.y; }
-    else { x0 = CANOPY.x0; x1 = CANOPY.x1; y0 = CANOPY.y0; y1 = CANOPY.y1; } // まだ誰もいない：木の上のほう
-  }
-  if (extra) for (const q of extra) { x0 = Math.min(x0, q.x - 30); x1 = Math.max(x1, q.x + 30); y0 = Math.min(y0, q.y - 40); }
-  if (fallers && fallers.length) {
-    const f = fallers.reduce((a, b) => (a.body.position.y < b.body.position.y ? a : b)); // いちばん上で落ちているサル
-    const p = f.body.position, t = f.type, top = p.y - t.h * 0.6;
-    x0 = Math.min(x0, p.x - t.w * 0.5); x1 = Math.max(x1, p.x + t.w * 0.5);
-    y1 = Math.max(y1, top + t.h * 0.38); // 頭と手のあたりまで
-  }
-  const mx = (x1 - x0) * 0.08;
-  x0 -= mx; x1 += mx; y0 -= (y1 - y0) * 0.05;
+  if (!members.length) { x0 = CANOPY.x0; x1 = CANOPY.x1; y0 = CANOPY.y0; y1 = CANOPY.y1; }
+  const mx = (x1 - x0) * 0.04; // 余白は少なめにして、サルをできるだけ大きく映す
+  x0 -= mx; x1 += mx; y0 -= (y1 - y0) * 0.03;
   let w = x1 - x0, h = Math.max(y1 - y0, 280);
   const ar = SNAP_W / SNAP_H;
   if (w / h < ar) w = h * ar; else h = w / ar;
-  return { cx: (x0 + x1) / 2, cy: y1 - h / 2, s: SNAP_W / w }; // 下端をそろえる
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: SNAP_W / w };
 }
 function renderShot(fr, canvas) {
   canvas.width = SNAP_W; canvas.height = SNAP_H;
-  drawScene(canvas.getContext("2d"), SNAP_W, SNAP_H, fr.s, SNAP_W / 2 - fr.cx * fr.s, SNAP_H / 2 - fr.cy * fr.s, { fx: false, leaves: false, popScale: 1.7 / fr.s });
+  // 擬音（サル×k など）はサルにかぶるので描かない
+  drawScene(canvas.getContext("2d"), SNAP_W, SNAP_H, fr.s, SNAP_W / 2 - fr.cx * fr.s, SNAP_H / 2 - fr.cy * fr.s, { fx: false, leaves: false });
 }
 
-// 木にいるサル全員に寄った絵を撮っておく（手を離す前に崩れたときに使う）
+// 木につながっているサルがいちばん多い瞬間を、全員に寄って撮っておく（同じ数なら新しいほう）。
+// あわせて、カードの「落ちる直前のいちばん大きな群れ」のために、直前4秒の群れの大きさを控える
 export function takeSnap() {
-  const g = groups();
-  const rec = G.snaps.length >= 10 ? G.snaps.shift() : { canvas: document.createElement("canvas") };
-  renderShot(frameShot(G.monkeys.filter((x) => !x.held && attached(x)), null), rec.canvas);
-  rec.size = g.bestOn; rec.t = now();
-  G.snaps.push(rec);
-}
-
-// 手がはなれて落ちはじめた瞬間を撮る
-export function takeFallShot() {
-  const { m, from, hand } = G.fallPlan;
-  G.fallPlan = null;
-  const fallers = componentOf(m).filter((x) => !attached(x)), fs = new Set(fallers);
-  const others = G.monkeys.filter((x) => !x.held && !fs.has(x) && attached(x)); // 木に残っているサルは全員入れる
-  const canvas = document.createElement("canvas");
-  if (from && !from.held && attached(from)) {
-    // 群れの一部が落ちた：木に残ったサル全員に寄り、落ちはじめを下のふちにぎりぎり入れる
-    renderShot(frameShot(others, fallers.length ? fallers : [m]), canvas);
-  } else {
-    // 群れごと落ちた：落ちはじめた群れ全体、ほかのサル、さっきまでつかんでいた場所を入れる
-    renderShot(frameShot([...(fallers.length ? fallers : [m]), ...others], null, hand ? [hand] : null), canvas);
-  }
-  G.fallShot = { canvas, t: G.simT };
+  const g = groups(), tn = now();
+  G.recentGroups.push({ t: tn, size: g.bestOn });
+  while (tn - G.recentGroups[0].t > 4000) G.recentGroups.shift();
+  if (G.best && g.onTree < G.best.n) return;
+  const canvas = G.best ? G.best.canvas : document.createElement("canvas");
+  renderShot(frameShot(G.monkeys.filter((x) => !x.held && attached(x))), canvas);
+  G.best = { canvas, n: g.onTree };
 }
 
 // ---------- 結果画面 ----------
@@ -72,11 +49,8 @@ let resultText = "";
 export async function finish() {
   G.state = "result"; G.engine.timing.timeScale = 1; setWindBanner("");
   const placed = G.monkeys.filter((m) => !m.held).length;
-  if (G.fallPlan) takeFallShot();
-  if (!G.snaps.length) takeSnap();
-  let best = G.snaps[0];
-  for (const s of G.snaps) if (s.size >= best.size) best = s;
-  if (G.fallShot && G.simT - G.fallShot.t < 8) best = { canvas: G.fallShot.canvas, size: best.size };
+  if (!G.best) takeSnap();
+  const best = { canvas: G.best.canvas, size: Math.max(0, ...G.recentGroups.map((r) => r.size)) };
   const all = Object.values(T).join("") + "0123456789";
   try { await Promise.all([document.fonts.load(`800 64px ${FONT}`, all), document.fonts.load(`700 40px ${FONT}`, all)]); } catch {}
   const card = buildCard(G.finalCount, placed, best);

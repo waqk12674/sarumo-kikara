@@ -47,7 +47,7 @@ export function findTarget(m, i, range) {
     if (o === m) continue;
     o.grabs.forEach((g) => { if (g && g.kind === "tree") taken.push(Vector.add(g.piece.body.position, Vector.rotate(g.local, g.piece.body.angle))); });
   }
-  const free = (q, extra = 0) => taken.every((t) => dist(t, q) >= C.GAP * G.SZ + extra);
+  const free = (q) => taken.every((t) => dist(t, q) >= C.GAP * G.SZ);
   if (onlyTree) {
     // 枝なら「1本目のつかみ位置＋今の手と手のずれ」ぴったりの位置に添える。ほかのサルの手のそばには添えない
     const fi = m.grabs.indexOf(first), q = Vector.add(grabWorld(m, fi), Vector.sub(hp, pointW(m, fi)));
@@ -57,19 +57,23 @@ export function findTarget(m, i, range) {
     return null;
   }
   if (!onlyMon) {
-    // 1本目の手は、あとから添える2本目の手（手と手の幅 span）のぶんも空けた場所を探す。少しずらして空きを探す
-    const span = Math.max(0, ...m.type.points.filter((pt, j) => pt.grab && j !== i).map((pt) => dist(pt, m.type.points[i])));
+    // 1本目の手は、あとから添える2本目の手が来る位置も空いている場所を探す（ほかの手は、いまの体の向きで枝に写した位置に来る）
+    const others = m.type.points.filter((pt, j) => pt.grab && j !== i).map((pt) => Vector.rotate(Vector.sub(pt, m.type.points[i]), m.body.angle));
     for (const p of G.pieces) {
       if (p.kind !== "branch") continue; // 幹はつかめない。枝だけ
       const q0 = closest(mid, p.a, p.b), len = dist(p.a, p.b), ux = (p.b.x - p.a.x) / len, uy = (p.b.y - p.a.y) / len;
+      const along = others.map((o) => o.x * ux + o.y * uy);
+      const roomy = (q) => free(q) && along.every((a) => free({ x: q.x + ux * a, y: q.y + uy * a }));
+      const d0 = reach(q0) - p.t / 2;
+      if (d0 >= bd) continue; // こぶしが枝にふれていないとつかめない
+      // ふれた所がふさがっていたら、枝にそっていちばん近い空いた所を探してつかむ（そこへたぐり寄せる）
       for (let k = 0; k <= C.SLIDE_TRIES; k++) {
         const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * C.SLIDE_STEP;
         const t = (q0.x - p.a.x) * ux + (q0.y - p.a.y) * uy + off;
         if (t < (p.seg ? 0 : C.BASE_CLEAR) || t > len) continue; // 幹のそばの付け根はつかめない（根元の区間だけ）
-        const q = { x: p.a.x + ux * t, y: p.a.y + uy * t }, d = reach(q) - p.t / 2;
-        if (d >= bd) continue;
-        if (!free(q, span) || !fit(q)) continue;
-        bd = d; best = { kind: "tree", piece: p, point: q };
+        const q = { x: p.a.x + ux * t, y: p.a.y + uy * t };
+        if (!roomy(q) || !fit(q)) continue;
+        bd = d0; best = { kind: "tree", piece: p, point: q };
         break;
       }
     }
@@ -159,7 +163,6 @@ function grab(m, i, t) {
 export function release(m, i, quiet) {
   const g = m.grabs[i];
   if (!g) return;
-  const wasOnTree = !quiet && attached(m); // 木につながっていたサルが手をはなしたときだけ、落ちはじめを撮る
   Composite.remove(G.world, g.c);
   if (g.kind === "mon" && g.mon.hangBy[g.pi] && g.mon.hangBy[g.pi].mon === m) g.mon.hangBy[g.pi] = null;
   m.stam[i] = Math.max(0, g.stamina); // 体力はつかみ直しても引き継ぐ
@@ -170,8 +173,6 @@ export function release(m, i, quiet) {
   const still = m.grabs.some(Boolean);
   pop(p.x, p.y - 10, still ? T.POP_ZURU : T.POP_A, 24);
   play(still ? "slip" : "fall");
-  if (wasOnTree && !m.grabs.some(Boolean) && G.state === "play")
-    G.fallPlan = { at: G.simT + cfg.END.FALL_SHOT_DELAY, m, from: g.kind === "mon" ? g.mon : null, hand: p };
 }
 
 function tryGrabAll(m) {

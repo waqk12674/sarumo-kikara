@@ -9,7 +9,7 @@ import { stepWind, setWindBanner } from "./wind.js";
 import { resize, fitCam } from "./camera.js";
 import { updateNext, dropHeldSilently, clearInput } from "./input.js";
 import { drawScene } from "./render.js";
-import { finish, takeSnap, takeFallShot } from "./result.js";
+import { finish, takeSnap } from "./result.js";
 import { loadSounds, play } from "./audio.js";
 const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
 
@@ -37,7 +37,7 @@ function init() {
   });
   Object.assign(G, {
     monkeys: [], held: null, state: "play", canSpawnAt: now() + 200, simT: 0, firstGrabAt: 0,
-    pops: [], rings: [], sparks: [], flash: null, score: 0, snaps: [], fallPlan: null, fallShot: null, shake: 0, dragging: false, placedSinceHint: 0,
+    pops: [], rings: [], sparks: [], flash: null, score: 0, best: null, recentGroups: [], shake: 0, dragging: false, placedSinceHint: 0,
     wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 }, lastType: null,
   });
   clearInput(); setWindBanner("");
@@ -54,7 +54,6 @@ function step() {
   stepWind();
   stepGrip();
   separate();
-  if (G.fallPlan && G.simT >= G.fallPlan.at) takeFallShot();
   // たぐり寄せ：つなぎ目を少しずつ縮める
   for (const m of G.monkeys) for (const g of m.grabs) if (g && g.c.length > 0) g.c.length = Math.max(cfg.GRAB.MIN_LEN, g.c.length - cfg.GRAB.PULL_STEP);
   Engine.update(G.engine, 1000 / 60);
