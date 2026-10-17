@@ -1,5 +1,5 @@
 // サルの種類：assets/monkeys の白黒の絵と monkeys.json（形式は SPEC.md §4）
-import { G, CAT, cfg } from "./state.js";
+import { G, CAT, cfg, LANG } from "./state.js";
 const { Bodies, Body, Vertices, Vector } = Matter;
 
 export const TYPES = [];
@@ -14,7 +14,7 @@ export async function loadMonkeys() {
     // decode() は画面が描かれていないと終わらないことがあるので、load を待つ
     ready.push(new Promise((ok, ng) => { img.onload = ok; img.onerror = () => ng(new Error(d.file)); }));
     img.src = "assets/monkeys/" + d.file;
-    TYPES.push({ id: d.id, name: d.name, img, d, tint: null, sil: null });
+    TYPES.push({ id: d.id, name: LANG === "en" ? d.en || d.name : d.name, img, d, tint: null, sil: null });
   }
   await Promise.all(ready);
   for (const t of TYPES) t.ink = inkArea(t);

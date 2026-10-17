@@ -17,6 +17,11 @@ const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const howto = document.getElementById("howto");
 
+// 属性の文言（画面の本文は index.html に日英を並べてあり、<html lang> と違うほうを CSS で隠す）
+for (const [id, name, text] of [["cv", "aria-label", T.A11Y_CANVAS], ["nextBox", "aria-label", T.A11Y_NEXT],
+  ["rankName", "placeholder", T.NAME_PH], ["rankName", "aria-label", T.NAME_LABEL], ["cardImg", "alt", T.IMG_ALT]])
+  document.getElementById(id).setAttribute(name, text);
+
 // ---------- 世界をつくる ----------
 function init() {
   G.rand = newRand();

@@ -21,16 +21,14 @@ export function updateNext() {
   nctx.drawImage(t.img, W / 2 - (t.w * k) / 2, H / 2 - (t.h * k) / 2, t.w * k, t.h * k);
 }
 
-// 名前を札の空きに入るいちばん大きな文字にする（1〜3行で比べて、大きく書けるほう）
+// 名前を札の空きに入るいちばん大きな文字にする（大きい字から、はみ出さなくなるまで小さくしていく。2〜3行に折り返すこともある）
 const nameEl = document.getElementById("nextName");
 function fitName(name) {
   nameEl.textContent = name;
-  const nm = nameEl.parentElement, W = nm.clientWidth;
-  const H = nextCv.clientHeight - nm.firstElementChild.offsetHeight; // NEXT の下の高さ
-  const n = [...name].length;
-  let size = 0;
-  for (let lines = 1; lines <= 3; lines++) size = Math.max(size, Math.min(W / Math.ceil(n / lines), H / (lines * 1.2)));
-  nameEl.style.fontSize = Math.floor(size * 0.97) + "px";
+  const nm = nameEl.parentElement, H = nextCv.clientHeight - nm.firstElementChild.offsetHeight; // NEXT の下の高さ
+  let s = 40;
+  do nameEl.style.fontSize = s + "px";
+  while (--s > 8 && (nameEl.scrollWidth > nm.clientWidth || nameEl.scrollHeight > H));
 }
 addEventListener("resize", () => G.nextType && fitName(G.nextType.name));
 

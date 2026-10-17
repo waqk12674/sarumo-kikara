@@ -11,15 +11,16 @@
 - `index.html` → `src/main.js`（起動・ループ・画面遷移・UI）
 - `src/config.js`：**調整値はすべてここに集める**（企画側が直接編集する。日本語コメント付き）。`src/defaults.js` に既定値、不正な値は既定値に戻す
 - `state.js`（共有の状態 `G`・設定・URLパラメータ）／`tree.js`（木としなり）／`monkeys.js`（サルの読み込み・つかむ点）／`grab.js`（つかむ・離す・場所取り・点数・群れ）／`grip.js`（重さ・握力・疲れ）／`wind.js`／`camera.js`／`input.js`（札から連れてくる・置きなおし）／`render.js`（背景・木・サル・擬音）／`result.js`（撮影・結果画像・シェア）／`util.js`
-- 文言は `config.js` の `TEXT.ja` / `TEXT.en`（今は ja だけ使う。英語版 /en/ を作るときに en を使う）。遊び方とボタンの文言は index.html に書く
+- 文言：JS が出すものは `config.js` の `TEXT.ja` / `TEXT.en`（`state.js` の `LANG` で選ぶ）。画面の本文（遊び方・ボタンなど）は index.html に `<span lang="ja">…</span><span lang="en">…</span>` と日英を並べ、`<html lang>` と違うほうを CSS で隠す。文言を足すときは両方を書く。サルの英語名は monkeys.json の `en`
 - `src/audio.js`：音。`assets/audio/*.mp3` は運営者が用意した録音（出典は `CREDITS.md`）、`*.wav` は `python tools/make_se.py`（標準ライブラリだけ・乱数の種固定）で合成したもの。合成音を変えるときはスクリプトを直して実行し直す（録音に差し替えた音は書き出さない）。用途・ファイル名・音量は config.js の `AUDIO`
 - `assets/monkeys/`：サルのPNGと `monkeys.json`（形式は SPEC.md §4）。`assets/source/` は元画像で、公開しない
   - クモザル・ホエザル・リスザルの絵は `python tools/flip_tails.py` で、加工前の `assets/source/tails/*.png` から尻尾を下向きにして作る。この3枚の絵を直すときは加工前のほうを直して実行し直す
   - `tools/monkeys.html`：24種の一覧（つかむ点・ぶら下がれる点・重さ）。手元で http://localhost:8124/tools/monkeys.html を開く
 - `ogp.png`：OGP・バナー画像（1200×630。枝につかまって吠えるホエザル）。`python tools/make_ogp.py` で `assets/source/sheet_hanging.png` から作る（HG行書体を使うので Windows で実行）。直すときはスクリプトを直して実行し直す（2026-10-18）
-- `share/`：Xシェア用の中継ページ（予定。OGP画像を作るときに一緒に作る。今のシェアの URL は `https://waqk.jp/sarumo-kikara/`）
+- シェアの URL は `https://waqk.jp/sarumo-kikara/`（英語版は `…/en/`）。OGP は index.html の og:image（`ogp.png`。英語版も日本語の画像のまま）
 - `mock/`：引き継ぎ時点のモック（参考用。公開しない）
-- 配信（2026-10-17〜）：今はテスト版。`wrangler.jsonc` に routes を書かず、workers.dev だけで公開（AdSense 審査中の waqk.jp には出さない。ハブにも載せない）。`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。本公開のときに routes と `_redirects` を足す。テスト版の URL は https://sarumo-kikara.waqk12674.workers.dev/（GitHub の main に push すると Workers Builds で自動デプロイ）
+- 配信：`wrangler.jsonc` の routes `waqk.jp/sarumo-kikara/*` ＋ `_redirects`（`/sarumo-kikara/* /:splat 200`）で静的配信（2026-10-18 本公開。AdSense 審査中だが運営者が公開を決めた）。workers.dev（https://sarumo-kikara.waqk12674.workers.dev/）も残し、`_headers` で workers.dev にだけ noindex。公開するファイルは `.assetsignore` の許可リスト。GitHub の main に push すると Workers Builds で自動デプロイ
+- 英語版（2026-10-18）：https://waqk.jp/sarumo-kikara/en/。`worker/index.js` の `english` が index.html の head（lang・title・description・og・canonical）を英語に書き換え、`<base href="../">` を足して返す（ファイルは1つ。手本は dashimaki）。`/` と `/en/` の行き来は、遊び方ダイアログの右上の「English」「日本語」のリンクだけ（言語を自動で判定して移したりしない）。英語の題名は「Monkeys Don't Fall」
 - ランキング（2026-10-17）：`worker/index.js`（`GET/POST api/scores`）＋ D1 `sarumo-kikara-scores`（id `6c5d4df5-2176-43a2-a84e-604aa6521841`、表は `schema.sql`）。画面側は `src/ranking.js`。Worker が動くのは `run_worker_first` の `/api/*`・`/sarumo-kikara/api/*` だけ。`worker/`・`schema.sql` は `.assetsignore` の許可リストに入っていないので公開されない。テスト版の記録は本公開のときに `DELETE FROM scores` で消す
 
 ## 確認のしかた

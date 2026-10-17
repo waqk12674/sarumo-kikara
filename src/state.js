@@ -5,7 +5,8 @@ import { validateConfig, rng, now } from "./util.js";
 
 export const cfg = validateConfig(CONFIG, DEFAULTS);
 export const P = cfg.PLAY;      // 遊びの調整値（?debug=1 のパネルで書き換わる）
-export const T = cfg.TEXT.ja;   // /sarumo-kikara/ は常に日本語（英語版は /sarumo-kikara/en/ で後から作る）
+export const LANG = document.documentElement.lang === "en" ? "en" : "ja"; // /sarumo-kikara/ は常に日本語。英語版 /sarumo-kikara/en/ は worker が lang="en" にして返す
+export const T = cfg.TEXT[LANG];
 export const DT = 1 / 60;       // 物理の1ステップ（秒）
 export const CAT = { G: 1, T: 2, M: 4 }; // ぶつかり判定の種類：地面・木・サル
 

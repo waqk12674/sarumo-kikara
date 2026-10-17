@@ -1,0 +1,2 @@
+# waqk.jp/sarumo-kikara/* のルートで届いたリクエストを、先頭の /sarumo-kikara を外したファイルで返す（Worker を起動しない。wrangler.jsonc の routes）
+/sarumo-kikara/* /:splat 200

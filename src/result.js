@@ -1,5 +1,5 @@
 // 結果：木にいるサルがいちばん多かった瞬間を撮っておき、結果画像をつくる（SPEC.md §9）
-import { G, cfg, T, COLOR, FONT } from "./state.js";
+import { G, cfg, T, LANG, COLOR, FONT } from "./state.js";
 import { now, fill } from "./util.js";
 import { blob, drawScene, PAPER_TILE } from "./render.js";
 import { attached, groups } from "./grab.js";
@@ -9,7 +9,7 @@ import { onResult } from "./ranking.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
-const URL = "https://waqk.jp/sarumo-kikara/";
+const URL = "https://waqk.jp/sarumo-kikara/" + (LANG === "en" ? "en/" : "");
 
 // サルたちに寄って撮る（サルがいなければ木の上のほう）
 function frameShot(members) {
@@ -104,7 +104,8 @@ function buildCard(n, total, best) {
   g.fillStyle = "rgba(181,101,90,.88)"; g.fillRect(0, 0, 66, 66);
   g.fillStyle = "rgba(246,240,226,.95)"; g.font = `800 46px ${FONT}`; g.textAlign = "center"; g.fillText(T.CARD_SEAL, 33, 49); g.restore();
   // 主役：スコア
-  vtext(g, T.CARD_SCORE, 335, 300, 52, 58, 10);
+  if (LANG === "en") { g.textAlign = "center"; g.fillStyle = COLOR.USUZUMI; g.font = `700 50px ${FONT}`; g.fillText(T.CARD_SCORE, 170, 370); } // 英語は横書き
+  else vtext(g, T.CARD_SCORE, 335, 300, 52, 58, 10);
   const len = String(G.score).length, sz = len >= 3 ? 140 : len === 2 ? 180 : 200;
   g.textAlign = "center"; g.font = `800 ${sz}px ${FONT}`; outlined(g, String(G.score), 170, 540, 16);
   g.font = `800 64px ${FONT}`; outlined(g, T.CARD_PT, 170, 640, 10);

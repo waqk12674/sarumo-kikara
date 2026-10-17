@@ -1,11 +1,16 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>サルも木から落ちぬん</title>
 <meta name="description" content="木の枝に白黒のサルを引っかけ、サルの下にサルをつなげて鎖を伸ばす、シュールな物理パズル。1匹でも地面にふれたら終わり。">
 <link rel="canonical" href="https://waqk.jp/sarumo-kikara/">
+<!-- 英語版 /en/ は worker/index.js が、この index.html の head を英語に書き換えて返す（ファイルは1つ） -->
+<link rel="alternate" hreflang="ja" href="https://waqk.jp/sarumo-kikara/">
+<link rel="alternate" hreflang="en" href="https://waqk.jp/sarumo-kikara/en/">
+<link rel="alternate" hreflang="x-default" href="https://waqk.jp/sarumo-kikara/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="サルも木から落ちぬん">
 <meta property="og:description" content="サルの下にサルをつなげて、鎖を伸ばせ。1匹でも落ちたら終わり。">
@@ -20,6 +25,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap">
 <script src="https://waqk.jp/more-games.js" defer></script>
 <style>
+/* 画面の文言は日英を並べて書き、<html lang> と違うほうを隠す（英語版 /en/ は lang="en"） */
+html[lang="ja"] [lang="en"],html[lang="en"] [lang="ja"],html[lang="ja"] [data-for="en"],html[lang="en"] [data-for="ja"]{display:none!important}
 /* 淡い水彩の紙に墨のサル。UIは生成り色の札を上下に置き、中央は木とサルに明け渡す */
 :root{
   --washi:#EFE9DC;
@@ -78,6 +85,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 /* 名前は札の空きいっぱいの大きさ（文字の大きさは src/input.js の fitName が名前ごとに決める。2〜3行に折り返すこともある） */
 .next .nm{display:flex;flex-direction:column;flex:0 1 150px;min-width:0}
 .next .nm b{font-size:18px;line-height:1.2;line-break:anywhere;text-wrap:balance;overflow:hidden;font-weight:800}
+html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折り返さない */
 /* スマホ幅では横に収まるよう、少しだけ詰める（それでも元の約1.3倍） */
 @media (max-width:420px){
   .row1{gap:6px}.logo{font-size:15px}.logo small{font-size:11px;padding-left:1.6em}
@@ -90,7 +98,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .bottom{position:fixed;left:0;right:0;bottom:0;padding:6px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
   display:flex;justify-content:space-between;align-items:flex-end;gap:8px;pointer-events:none;z-index:2}
 .bottom > *{pointer-events:auto}
-.chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px}
+.chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px;white-space:nowrap}
 .chip[aria-expanded="true"]{background:var(--sumi);color:var(--kinari)}
 .bottom .right{display:flex;gap:8px}
 .wind{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--hud-h,120px) + 6px);z-index:2;pointer-events:none;
@@ -136,6 +144,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .howto{width:min(360px,calc(100% - 32px));box-sizing:border-box;max-height:calc(100% - 32px);overflow:auto;background:var(--kinari);color:var(--sumi);
   border:1.5px solid var(--line);border-radius:14px;padding:16px 16px 18px;font-family:var(--font-mincho)}
 .howto::backdrop{background:var(--scrim)}
+.howto .lang{position:absolute;top:10px;right:14px;font-size:12px;color:var(--usuzumi)}
 .howto h2{margin:0 0 4px;font-size:18px;font-weight:800;text-align:center;letter-spacing:.2em}
 .howto .lead{margin:0 0 10px;font-size:14px;font-weight:700;text-align:center}
 .howto ol{margin:0;padding:0 0 0 1.4em;font-size:14px;line-height:1.7;display:flex;flex-direction:column;gap:6px}
@@ -150,24 +159,25 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 </head>
 <body>
 <canvas id="cv" aria-label="ゲーム画面"></canvas>
-<div id="boot">よみこみ中…</div>
+<div id="boot"><span lang="ja">よみこみ中…</span><span lang="en">Loading…</span></div>
 
 <header class="hud" id="hud">
   <div class="row1">
-    <h1 class="logo">サルも木から<small>落ちぬん</small></h1>
-    <div class="fuda cnt" aria-live="polite"><span class="lbl">スコア</span><span class="num"><b id="cnt">0</b><span class="u">点</span></span><span class="sub">群れ <span id="cntSub">0</span>匹</span></div>
+    <h1 class="logo"><span lang="ja">サルも木から<small>落ちぬん</small></span><span lang="en">Monkeys<small>Don't Fall</small></span></h1>
+    <div class="fuda cnt" aria-live="polite"><span class="lbl"><span lang="ja">スコア</span><span lang="en">Score</span></span><span class="num"><b id="cnt">0</b><span class="u"><span lang="ja">点</span><span lang="en">pts</span></span></span><span class="sub"><span lang="ja">群れ </span><span lang="en">Troop </span><span id="cntSub">0</span><span lang="ja">匹</span></span></div>
     <div class="nextWrap">
       <div class="fuda next" id="nextBox" role="button" aria-label="ここからサルをドラッグして連れてくる"><canvas id="nextCv" width="120" height="156"></canvas><div class="nm"><span class="lbl">NEXT</span><b id="nextName">-</b></div></div>
-      <span class="pull" aria-hidden="true">ひっぱる ↙</span>
+      <span class="pull" aria-hidden="true"><span lang="ja">ひっぱる</span><span lang="en">Drag</span> ↙</span>
     </div>
   </div>
 </header>
 
 <!-- 遊び方：開いたときに出し、「はじめる」まで止めておく（src/main.js）。本文として HTML に書く -->
 <dialog class="howto" id="howto" aria-labelledby="howtoTitle">
-  <h2 id="howtoTitle">ざっくりな遊び方</h2>
-  <p class="lead">～サルをつなげてハイスコアをねらおう！～</p>
-  <ol>
+  <a class="lang" href="en/" data-for="ja">English</a><a class="lang" href="./" data-for="en">日本語</a>
+  <h2 id="howtoTitle"><span lang="ja">ざっくりな遊び方</span><span lang="en">How to Play</span></h2>
+  <p class="lead"><span lang="ja">～サルをつなげてハイスコアをねらおう！～</span><span lang="en">~ Chain up monkeys for a high score! ~</span></p>
+  <ol lang="ja">
     <li>右上からサルを<b>ドラッグ</b></li>
     <li>以下の方法でサルを枝にひっかける<br>・枝の上で<b>指を離す</b><br>・サルの体が赤くなるところで<b>指を離す</b></li>
     <li>サルの下にもサルをひっかけられる</li>
@@ -175,17 +185,25 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
     <li>得点がはいるのは新たなサルだけ</li>
     <li>サルが地面につくとゲームオーバー</li>
   </ol>
-  <p class="more">詳しいあそびかたは以下ページを参照<br><a href="https://waqk.jp/guide/sarumo-kikara" target="_blank" rel="noopener">サルも木から落ちぬん の遊び方 →</a></p>
-  <div class="acts"><button class="pill go" id="howtoGo">はじめる</button><button class="pill" id="howtoRank">ランキング</button></div>
+  <ol lang="en">
+    <li><b>Drag</b> a monkey from the top-right card</li>
+    <li>Hook it onto a branch:<br>・<b>let go</b> right over a branch<br>・or <b>let go</b> where the monkey turns red</li>
+    <li>Monkeys can hang from other monkeys, too</li>
+    <li>Don't like the spot? Pick it up and hang it again</li>
+    <li>Only newly added monkeys score points</li>
+    <li>If any monkey touches the ground, it's game over</li>
+  </ol>
+  <p class="more"><span lang="ja">詳しいあそびかたは以下ページを参照<br><a href="https://waqk.jp/guide/sarumo-kikara" target="_blank" rel="noopener">サルも木から落ちぬん の遊び方 →</a></span><span lang="en">Want all the details?<br><a href="https://waqk.jp/guide/sarumo-kikara" target="_blank" rel="noopener">Full guide (Japanese) →</a></span></p>
+  <div class="acts"><button class="pill go" id="howtoGo"><span lang="ja">はじめる</span><span lang="en">Start</span></button><button class="pill" id="howtoRank"><span lang="ja">ランキング</span><span lang="en">Ranking</span></button></div>
 </dialog>
 <div class="wind off" id="wind" aria-live="polite"></div>
 <pre class="dbg" id="dbgInfo" hidden></pre>
 
 <div class="bottom">
-  <button class="chip" id="resetBtn">やり直す</button>
+  <button class="chip" id="resetBtn"><span lang="ja">やり直す</span><span lang="en">Restart</span></button>
   <div class="right">
-    <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune" hidden>調整</button>
-    <button class="chip" id="rankBtn" aria-haspopup="dialog">ランキング</button>
+    <button class="chip" id="tuneBtn" aria-expanded="false" aria-controls="tune" hidden><span lang="ja">調整</span><span lang="en">Tune</span></button>
+    <button class="chip" id="rankBtn" aria-haspopup="dialog"><span lang="ja">ランキング</span><span lang="en">Ranking</span></button>
     <button class="chip" id="muteBtn" aria-pressed="false">音 あり</button>
   </div>
 </div>
@@ -205,31 +223,31 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
   <div class="card">
     <img id="cardImg" alt="結果画像">
     <div class="row acts">
-      <button id="share" class="pill">Xでシェア</button>
-      <button id="again" class="pill">もう一度</button>
-      <button class="pill" data-waqk-more-button>ほかのゲーム</button>
+      <button id="share" class="pill"><span lang="ja">Xでシェア</span><span lang="en">Share on X</span></button>
+      <button id="again" class="pill"><span lang="ja">もう一度</span><span lang="en">Play again</span></button>
+      <button class="pill" data-waqk-more-button><span lang="ja">ほかのゲーム</span><span lang="en">More games</span></button>
     </div>
-    <div class="row tip"><a class="pill" href="https://ofuse.me/o?uid=225115" target="_blank" rel="noopener">開発者を応援</a></div>
+    <div class="row tip"><a class="pill" href="https://ofuse.me/o?uid=225115" target="_blank" rel="noopener"><span lang="ja">開発者を応援</span><span lang="en">Support the dev</span></a></div>
     <!-- ランキング（src/ranking.js）。登録は1〜8文字のニックネーム -->
     <section class="rank">
-      <h2>ランキング</h2>
-      <div class="row reg" id="rankReg"><input id="rankName" maxlength="8" autocomplete="nickname" placeholder="ニックネーム（8文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill">登録</button></div>
+      <h2><span lang="ja">ランキング</span><span lang="en">Ranking</span></h2>
+      <div class="row reg" id="rankReg"><input id="rankName" maxlength="8" autocomplete="nickname" placeholder="ニックネーム（8文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill"><span lang="ja">登録</span><span lang="en">Submit</span></button></div>
       <p id="rankMsg" aria-live="polite" hidden></p>
       <ol id="rankList"></ol>
     </section>
-    <p>画像は長押し（PCは右クリック）で保存できます。</p>
+    <p><span lang="ja">画像は長押し（PCは右クリック）で保存できます。</span><span lang="en">Long-press (or right-click) the image to save it.</span></p>
   </div>
 </div>
 
 <dialog class="rankDialog" id="rankDialog" aria-labelledby="rankDlgTitle">
-  <h2 id="rankDlgTitle">ランキング（TOP10）</h2>
+  <h2 id="rankDlgTitle"><span lang="ja">ランキング（TOP10）</span><span lang="en">Ranking (Top 10)</span></h2>
   <p id="rankDlgMsg" aria-live="polite" hidden></p>
   <ol id="rankDlgList"></ol>
-  <button class="pill" id="rankClose">閉じる</button>
+  <button class="pill" id="rankClose"><span lang="ja">閉じる</span><span lang="en">Close</span></button>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-<script>if(!window.Matter)document.getElementById("boot").textContent="物理エンジンを読み込めませんでした。再読み込みしてください。";</script>
+<script>if(!window.Matter)document.getElementById("boot").textContent=document.documentElement.lang==="en"?"Couldn't load the physics engine. Please reload.":"物理エンジンを読み込めませんでした。再読み込みしてください。";</script>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

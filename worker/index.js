@@ -1,7 +1,8 @@
 // サルも木から落ちぬん の Worker
 //   /api/scores → ランキング（D1: env.DB）
+//   /en/        → 英語版（index.html の head を英語に書き換えて返す）
 //   それ以外    → 静的ファイル（wrangler.jsonc の run_worker_first にないパスは、この Worker を通らない）
-// /sarumo-kikara/api/scores は waqk.jp のルートから届くとき、/api/scores は workers.dev・wrangler dev のとき
+// 先頭に /sarumo-kikara が付いて届くのは waqk.jp のルートから、付かないのは workers.dev・wrangler dev から
 
 const NAME_MAX = 8;
 const TOP_N = 10;
@@ -72,12 +73,39 @@ async function scores(request, env, url) {
   return json({ mine: await mine(env, body.player), top: await top(env, body.player) });
 }
 
+// 英語版 /en/：SNS のクローラーは JS を動かさないので、head（lang・タイトル・説明・OGP・canonical）を英語に書き換えて返す。
+// 素材や api の相対パスは / と同じ場所から読むよう <base href="../"> を足す（ファイルは index.html の1つだけ。手本は dashimaki）。
+// 画面の文言は index.html に日英を並べてあり、lang="en" で英語のほうが見える。OGP 画像は日本語のまま
+const EN = {
+  title: "Monkeys Don't Fall",
+  desc: "Hang black-and-white monkeys on a tree, then hang more monkeys under them. A silly physics puzzle: if even one touches the ground, it's over.",
+  url: 'https://waqk.jp/sarumo-kikara/en/',
+};
+const setAttr = (name, value) => ({ element: (el) => { el.setAttribute(name, value); } });
+async function english(request, url, env) {
+  const res = await env.ASSETS.fetch(new Request(new URL('/', url), request));
+  return new HTMLRewriter()
+    .on('html', setAttr('lang', 'en'))
+    .on('head', { element: (el) => { el.prepend('<base href="../">', { html: true }); } })
+    .on('title', { element: (el) => { el.setInnerContent(EN.title); } })
+    .on('meta[name="description"]', setAttr('content', EN.desc))
+    .on('link[rel="canonical"]', setAttr('href', EN.url))
+    .on('meta[property="og:title"]', setAttr('content', EN.title))
+    .on('meta[property="og:description"]', setAttr('content', EN.desc))
+    .on('meta[property="og:url"]', setAttr('content', EN.url))
+    .transform(res);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/scores' || url.pathname === '/sarumo-kikara/api/scores') {
+    const path = url.pathname.replace(/^\/sarumo-kikara(?=\/)/, '');
+    if (path === '/api/scores') {
       try { return await scores(request, env, url); } catch { return json({ error: 'server error' }, 500); }
     }
+    // /en → /en/（相対の Location なので、waqk.jp では /sarumo-kikara/en/ になる）
+    if (path === '/en') return new Response(null, { status: 301, headers: { Location: 'en/' + url.search } });
+    if (path === '/en/' && request.method === 'GET') return english(request, url, env);
     return env.ASSETS.fetch(request);
   },
 };
