@@ -14,3 +14,16 @@ CREATE TABLE IF NOT EXISTS scores (
 CREATE INDEX IF NOT EXISTS idx_scores_player ON scores (player, score);
 CREATE INDEX IF NOT EXISTS idx_scores_score ON scores (score);
 CREATE INDEX IF NOT EXISTS idx_scores_ip ON scores (ip_hash, created_at);
+
+-- Xでシェアの連投止め（/api/share。画像そのものは R2 sarumo-shares）
+CREATE TABLE IF NOT EXISTS shares (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip_hash    TEXT    NOT NULL,          -- IP のハッシュ（IPv6 は /64 で丸める）
+  created_at INTEGER NOT NULL           -- UNIX ミリ秒
+);
+CREATE INDEX IF NOT EXISTS idx_shares_ip ON shares (ip_hash, created_at);
+-- 1日（UTC）ごとの件数。上限は worker/index.js の SHARE_PER_DAY
+CREATE TABLE IF NOT EXISTS share_days (
+  day TEXT    PRIMARY KEY,              -- 2026-10-18
+  n   INTEGER NOT NULL
+);

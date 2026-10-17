@@ -20,3 +20,5 @@
 ```
 npx wrangler r2 object delete sarumo-shares/s/<id>.jpg --remote
 ```
+
+連投止めの表（`shares`・`share_days`）は D1 `sarumo-kikara-scores` にある（`schema.sql`）。表を足したときは、デプロイの前に `npx wrangler d1 execute sarumo-kikara-scores --remote --file=schema.sql` で本番に作る（ないと /api/share が 500 になる）。

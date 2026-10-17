@@ -19,6 +19,9 @@ const MAX_SECS = 3600;
 const PUBLIC_BASE = 'https://waqk.jp/sarumo-kikara';
 const SHARE_W = 1200, SHARE_H = 630;
 const MAX_JPEG = 200 * 1024;
+// 連投止め（R2 の書き込み回数・保存量が無料枠を超えないよう、D1 で正確に数える）
+const SHARE_PER_IP = 5, SHARE_IP_WINDOW_MS = 60_000; // 同じ人（IP）から1分5件まで
+const SHARE_PER_DAY = 300;                            // 全体で1日（UTC）300件まで。R2 の書き込みは月に約9300回が上限になる
 const ID_RE = /^[0-9A-Za-z]{10}$/;
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const shareKey = (id) => `s/${id}.jpg`;
@@ -49,8 +52,17 @@ async function mine(env, player) {
   return { best, rank: ahead + 1 };
 }
 
+// IPv6 は /64 で丸める（同じ回線のまま末尾を変えて別人になれないように）
+function ipKey(ip) {
+  if (!ip.includes(':')) return ip;
+  const [head, tail] = ip.split('::');
+  const h = head ? head.split(':') : [], t = tail ? tail.split(':') : [];
+  const all = tail === undefined ? h : [...h, ...Array(8 - h.length - t.length).fill('0'), ...t];
+  return all.slice(0, 4).map((x) => parseInt(x, 16).toString(16)).join(':') + '::/64';
+}
+
 async function ipHash(request) {
-  const ip = request.headers.get('cf-connecting-ip') || '';
+  const ip = ipKey(request.headers.get('cf-connecting-ip') || '');
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('sarumo:' + ip));
   return [...new Uint8Array(buf)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -140,7 +152,8 @@ function jpegSize(b) {
 // 利用者が入力した文字（ニックネームなど）は受け取らない
 async function postShare(request, env) {
   if (Number(request.headers.get('content-length') ?? 0) > MAX_JPEG + 4096) return json({ error: 'too large' }, 413);
-  // IP ごとに1分5件まで（R2 の書き込み回数が無料枠を超えないよう、連打や悪用を止める）
+  // 前段の間引き。Rate Limiting はロケーション内のマシンごとの近似で、本番では1つの IP から毎秒2件ほど通ってしまう。
+  // 上限を守るのは、形の検査のあとの D1 の数え方（tooManyShares）のほう
   const { success } = await env.SHARE_RL.limit({ key: request.headers.get('cf-connecting-ip') ?? 'local' });
   if (!success) return json({ error: 'too many requests' }, 429);
   let form;
@@ -154,12 +167,28 @@ async function postShare(request, env) {
   if (size.w !== SHARE_W || size.h !== SHARE_H) return json({ error: `must be ${SHARE_W}x${SHARE_H}` }, 400);
   const bad = checkRecord(score, monkeys, secs);
   if (bad) return json({ error: bad }, 400);
+  if (await tooManyShares(request, env)) return json({ error: 'too many requests' }, 429);
   const id = newId();
   await env.SHARES.put(shareKey(id), bytes, {
     httpMetadata: { contentType: 'image/jpeg' },
     customMetadata: { score: String(score), monkeys: String(monkeys), lang, created: new Date().toISOString() },
   });
   return json({ id }, 201);
+}
+
+// 同じ IP の直近1分の件数と、その日の全体の件数を数える。上限なら true。数えた分は記録する（R2 に書く前に）
+async function tooManyShares(request, env) {
+  const now = Date.now(), ip = await ipHash(request);
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM shares WHERE ip_hash = ? AND created_at > ?')
+    .bind(ip, now - SHARE_IP_WINDOW_MS).first('n');
+  if (recent >= SHARE_PER_IP) return true;
+  // 上限に届いていれば行が増えない（changes が 0）
+  const day = await env.DB.prepare(
+    'INSERT INTO share_days (day, n) VALUES (?, 1) ON CONFLICT (day) DO UPDATE SET n = n + 1 WHERE n < ?',
+  ).bind(new Date(now).toISOString().slice(0, 10), SHARE_PER_DAY).run();
+  if (day.meta.changes === 0) return true;
+  await env.DB.prepare('INSERT INTO shares (ip_hash, created_at) VALUES (?, ?)').bind(ip, now).run();
+  return false;
 }
 
 const shareTitle = ({ score, monkeys, lang }) => (lang === 'en'
