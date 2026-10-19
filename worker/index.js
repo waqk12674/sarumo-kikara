@@ -114,6 +114,7 @@ const EN = {
   url: 'https://waqk.jp/sarumo-kikara/en/',
 };
 const setAttr = (name, value) => ({ element: (el) => { el.setAttribute(name, value); } });
+const dropLd = (rw) => rw.on('script[type="application/ld+json"]', { element: (el) => { el.remove(); } }); // JSON-LD は日本語版 / だけに出す（/en/ と /s/ で使う）
 const englishHead = (rw) => rw
   .on('html', setAttr('lang', 'en'))
   .on('title', { element: (el) => { el.setInnerContent(EN.title); } })
@@ -124,7 +125,7 @@ const englishHead = (rw) => rw
   .on('meta[property="og:url"]', setAttr('content', EN.url));
 async function english(request, url, env) {
   const res = await env.ASSETS.fetch(new Request(new URL('/', url), request));
-  return englishHead(new HTMLRewriter().on('head', { element: (el) => { el.prepend('<base href="../">', { html: true }); } }))
+  return englishHead(dropLd(new HTMLRewriter()).on('head', { element: (el) => { el.prepend('<base href="../">', { html: true }); } }))
     .transform(res);
 }
 
@@ -202,7 +203,7 @@ async function sharePage(request, url, env, id) {
   if (!obj) return Response.redirect(`${base}/`, 302);
   const meta = obj.customMetadata, title = shareTitle(meta), image = `${base}/s/${id}.jpg`;
   // /s/<id> は1階層深いので、相対パスの素材や api をトップから読ませる
-  let rw = new HTMLRewriter().on('head', { element: (el) => { el.prepend(`<base href="${esc(base)}/">`, { html: true }); } });
+  let rw = dropLd(new HTMLRewriter()).on('head', { element: (el) => { el.prepend(`<base href="${esc(base)}/">`, { html: true }); } });
   if (meta.lang === 'en') rw = englishHead(rw); // 英語で作った共有は、/en/ と同じく英語の画面にする
   rw = rw
     .on('meta[property="og:title"]', setAttr('content', title))
