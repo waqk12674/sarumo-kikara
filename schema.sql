@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS scores (
 CREATE INDEX IF NOT EXISTS idx_scores_player ON scores (player, score);
 CREATE INDEX IF NOT EXISTS idx_scores_score ON scores (score);
 CREATE INDEX IF NOT EXISTS idx_scores_ip ON scores (ip_hash, created_at);
+CREATE INDEX IF NOT EXISTS idx_scores_created ON scores (created_at); -- デイリー（日本時間 0:00 から）の絞り込み用
 
 -- Xでシェアの連投止め（/api/share。画像そのものは R2 sarumo-shares）
 CREATE TABLE IF NOT EXISTS shares (

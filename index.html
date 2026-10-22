@@ -124,9 +124,9 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .dbg{position:fixed;left:8px;top:calc(var(--hud-h,120px) + 40px);z-index:2;margin:0;font:11px/1.4 ui-monospace,monospace;
   background:rgba(246,240,226,.85);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre}
 
-.result{position:fixed;inset:0;background:var(--scrim);z-index:5;display:flex;align-items:center;justify-content:center;
+.result{position:fixed;inset:0;background:var(--scrim);z-index:5;display:flex;justify-content:center;
   padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);overflow:auto;touch-action:auto}
-.card{background:var(--kinari);border:1.5px solid var(--line);border-radius:14px;width:min(420px,100%);padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text}
+.card{margin:auto 0;background:var(--kinari);border:1.5px solid var(--line);border-radius:14px;width:min(420px,100%);padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text}
 .card img{display:block;width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;-webkit-touch-callout:default}
 .card .row{display:flex;gap:8px;justify-content:center}
 .card .pill{flex:1 1 0;min-width:0;white-space:nowrap;border:1.5px solid var(--line);border-radius:999px;padding:9px 10px;font-size:14px;font-weight:700;
@@ -135,6 +135,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .card .tip .pill{flex:0 1 auto;padding:7px 18px;font-size:13px}
 .card p{margin:0;font-size:12px;line-height:1.7;color:var(--usuzumi);text-align:center}
 .card img{max-height:46vh}
+/* 縦の中央寄せは margin:auto で（カードが画面より高いときは上から並べ、画像の上が切れてスクロールで戻れなくなるのを防ぐ） */
 .rank{border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
 .rank h2,.rankDialog h2{margin:0;font-size:14px;font-weight:800;text-align:center;letter-spacing:.1em}
 .rank .reg input{flex:1 1 auto;min-width:0;box-sizing:border-box;font:inherit;font-size:14px;padding:7px 10px;border:1.5px solid var(--line);border-radius:999px;background:#fffdf7;color:var(--sumi)}
@@ -145,6 +146,11 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .rank li b,.rankDialog li b{float:right;font-weight:700}
 .rank li.me,.rankDialog li.me{color:var(--shu);font-weight:800}
 .rank li.empty,.rankDialog li.empty{list-style:none;margin-left:-2.2em;text-align:center;color:var(--usuzumi)}
+.rank ol{max-height:calc(13px * 1.75 * 10 + 10px);overflow:auto} /* 20行は結果画面では10行分の高さでスクロール（ボタンが押せる位置に残るように） */
+.tabs{display:flex;justify-content:center;gap:6px}
+.tabs button{border:1.5px solid var(--line);border-radius:999px;padding:4px 16px;font-size:13px;font-weight:700;background:rgba(240,233,219,.88)}
+.tabs button[aria-pressed="true"]{background:var(--sumi);border-color:var(--sumi);color:var(--kinari)}
+.card p.reset,.rankDialog p.reset{margin:-2px 0 0;font-size:11px}
 .rankDialog{width:min(340px,calc(100% - 32px));box-sizing:border-box;background:var(--kinari);color:var(--sumi);border:1.5px solid var(--line);border-radius:14px;padding:14px;font-family:var(--font-mincho)}
 .rankDialog::backdrop{background:var(--scrim)}
 .rankDialog p{margin:6px 0;font-size:12px;color:var(--usuzumi);text-align:center}
@@ -245,6 +251,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <h2><span lang="ja">ランキング</span><span lang="en">Ranking</span></h2>
       <div class="row reg" id="rankReg"><input id="rankName" maxlength="8" autocomplete="nickname" placeholder="ニックネーム（8文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill"><span lang="ja">登録</span><span lang="en">Submit</span></button></div>
       <p id="rankMsg" aria-live="polite" hidden></p>
+      <div class="tabs" id="rankTabs"><button type="button" data-tab="all" aria-pressed="true"><span lang="ja">歴代</span><span lang="en">All-time</span></button><button type="button" data-tab="daily" aria-pressed="false"><span lang="ja">デイリー</span><span lang="en">Daily</span></button></div>
+      <p class="reset"><span lang="ja">毎日0時（日本時間）にリセット</span><span lang="en">Resets daily at 0:00 JST</span></p>
       <ol id="rankList"></ol>
     </section>
     <p><span lang="ja">画像は長押し（PCは右クリック）で保存できます。</span><span lang="en">Long-press (or right-click) the image to save it.</span></p>
@@ -252,7 +260,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <dialog class="rankDialog" id="rankDialog" aria-labelledby="rankDlgTitle">
-  <h2 id="rankDlgTitle"><span lang="ja">ランキング（TOP10）</span><span lang="en">Ranking (Top 10)</span></h2>
+  <h2 id="rankDlgTitle"><span lang="ja">ランキング（TOP20）</span><span lang="en">Ranking (Top 20)</span></h2>
+  <div class="tabs" id="rankDlgTabs"><button type="button" data-tab="all" aria-pressed="true"><span lang="ja">歴代</span><span lang="en">All-time</span></button><button type="button" data-tab="daily" aria-pressed="false"><span lang="ja">デイリー</span><span lang="en">Daily</span></button></div>
+  <p class="reset"><span lang="ja">毎日0時（日本時間）にリセット</span><span lang="en">Resets daily at 0:00 JST</span></p>
   <p id="rankDlgMsg" aria-live="polite" hidden></p>
   <ol id="rankDlgList"></ol>
   <button class="pill" id="rankClose"><span lang="ja">閉じる</span><span lang="en">Close</span></button>

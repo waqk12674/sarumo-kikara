@@ -25,7 +25,7 @@ async function call(opts) {
   return { status: r.status, data: await r.json() };
 }
 
-// TOP10 を ol に描く（自分の記録は色を変える）
+// TOP20 を ol に描く（自分の記録は色を変える）
 function render(list, top) {
   list.textContent = "";
   if (!top.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = T.RANK_EMPTY; list.append(li); return; }
@@ -37,16 +37,37 @@ function render(list, top) {
     li.append(n, s); list.append(li);
   }
 }
-const mineText = (m) => (m ? fill(T.RANK_MINE, m) : "");
 
-async function load(list, msg) {
-  msg.textContent = T.RANK_LOADING; msg.hidden = false; list.textContent = "";
+// 歴代（all）／デイリー（daily）のタブ。1回の取得で両方届くので、切り替えでは API を呼ばない
+const card = { list: $("rankList"), msg: $("rankMsg"), tabs: $("rankTabs"), tab: "all", data: null };
+const dlgView = { list: $("rankDlgList"), msg: $("rankDlgMsg"), tabs: $("rankDlgTabs"), tab: "all", data: null };
+function setTab(v, tab) {
+  v.tab = tab;
+  for (const b of v.tabs.children) b.setAttribute("aria-pressed", String(b.dataset.tab === tab));
+}
+// そのタブの一覧と、自分の順位（デイリーは今日の記録だけで数えた順位）
+function show(v) {
+  render(v.list, v.data[v.tab]);
+  const m = v.data.mine && v.data.mine[v.tab];
+  v.msg.textContent = m ? fill(v.tab === "daily" ? T.RANK_MINE_DAY : T.RANK_MINE, m) : ""; v.msg.hidden = !m;
+}
+for (const v of [card, dlgView]) {
+  v.tabs.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tab]");
+    if (!b) return;
+    setTab(v, b.dataset.tab);
+    if (v.data) show(v);
+  });
+}
+
+async function load(v) {
+  setTab(v, "all"); v.data = null; // 開くたびに歴代から
+  v.msg.textContent = T.RANK_LOADING; v.msg.hidden = false; v.list.textContent = "";
   try {
-    const { data } = await call();
-    render(list, data.top);
-    msg.textContent = mineText(data.mine); msg.hidden = !data.mine;
+    v.data = (await call()).data;
+    show(v);
   } catch (e) {
-    msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_ERROR;
+    v.msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_ERROR;
   }
 }
 
@@ -57,20 +78,22 @@ export function onResult(r) {
   $("rankName").value = savedName();
   $("rankReg").hidden = !(r.score > 0); // 0点は登録しない
   $("rankSend").disabled = false;
-  load($("rankList"), $("rankMsg"));
+  load(card);
 }
 $("rankSend").addEventListener("click", async () => {
   const name = $("rankName").value.trim(), msg = $("rankMsg");
   if (!name) { msg.textContent = T.RANK_NAME; msg.hidden = false; $("rankName").focus(); return; }
-  try { localStorage.setItem("skk_name", name); } catch {}
   $("rankSend").disabled = true; msg.textContent = T.RANK_SENDING; msg.hidden = false;
   try {
     const { status, data } = await call({ method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ player: player(), name, ...result }) });
     if (status === 429) { msg.textContent = T.RANK_BUSY; $("rankSend").disabled = false; return; }
+    // 登録できない名前：記録はそのまま、名前を直して登録し直せる
+    if (status === 400 && data.error === "ng_name") { msg.textContent = T.RANK_NG; $("rankSend").disabled = false; $("rankName").focus(); return; }
     if (status !== 200) { msg.textContent = T.RANK_FAIL; return; }
-    render($("rankList"), data.top);
-    msg.textContent = fill(T.RANK_DONE, data.mine);
+    try { localStorage.setItem("skk_name", name); } catch {} // 登録できた名前だけ、次回の入力欄に入れる
+    card.data = data; show(card);
+    msg.textContent = fill(T.RANK_DONE, data.mine.all);
     $("rankReg").hidden = true;
   } catch (e) {
     msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_FAIL;
@@ -83,7 +106,7 @@ const dlg = $("rankDialog");
 $("rankBtn").addEventListener("click", () => {
   G.paused = true;
   dlg.showModal();
-  load($("rankDlgList"), $("rankDlgMsg"));
+  load(dlgView);
 });
 $("rankClose").addEventListener("click", () => dlg.close());
 dlg.addEventListener("close", () => { G.paused = $("howto").open; }); // 遊び方から開いたときは、遊び方に戻るまで止めたまま

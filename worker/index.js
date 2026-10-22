@@ -5,9 +5,10 @@
 //   /s/<id>     → 共有ページ（index.html の OGP をその回の結果画像にして返す）。/s/<id>.jpg は画像
 //   それ以外    → 静的ファイル（wrangler.jsonc の run_worker_first にないパスは、この Worker を通らない）
 // 先頭に /sarumo-kikara が付いて届くのは waqk.jp のルートから、付かないのは workers.dev・wrangler dev から
+import { checkName } from './name-filter.js'; // 正本は C:\src\shared\name-filter.js（ここでは直さない）
 
 const NAME_MAX = 8;
-const TOP_N = 10;
+const TOP_N = 20;
 const POST_INTERVAL_MS = 10_000; // 同じ人（IP）からの連投を防ぐ間隔
 // ありえない記録を弾く目安
 const MAX_DEPTH = 15;       // 鎖の深さの上限（地面までの高さで決まる）。1匹の点はこれを超えない
@@ -33,23 +34,36 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
 });
 
+// デイリーの始まり（日本時間 0:00）の UTC ミリ秒。端末の時計は使わない
+const dayStartOf = (now) => Math.floor((now + 9 * 3600e3) / 86400e3) * 86400e3 - 9 * 3600e3;
+
 // 端末（player）ごとの最高記録で並べる（同じ点なら先に出したほうが上）。名前はその記録のときのもの
-const top = (env, player) => env.DB.prepare(
+// since より前の記録は数えない（歴代は 0、デイリーは dayStart）
+const top = (env, player, since) => env.DB.prepare(
   `SELECT name, score, (player = ?) AS me FROM (
      SELECT player, name, score, created_at,
             ROW_NUMBER() OVER (PARTITION BY player ORDER BY score DESC, created_at ASC) AS r
-     FROM scores)
+     FROM scores WHERE created_at >= ?)
    WHERE r = 1 ORDER BY score DESC, created_at ASC LIMIT ?`,
-).bind(player || '', TOP_N).all().then((r) => r.results.map((x) => ({ name: x.name, score: x.score, me: !!x.me })));
+).bind(player || '', since, TOP_N).all().then((r) => r.results.map((x) => ({ name: x.name, score: x.score, me: !!x.me })));
 
 // その端末の最高記録と順位
-async function mine(env, player) {
-  const best = await env.DB.prepare('SELECT MAX(score) AS s FROM scores WHERE player = ?').bind(player).first('s');
+async function mine(env, player, since) {
+  const best = await env.DB.prepare('SELECT MAX(score) AS s FROM scores WHERE player = ? AND created_at >= ?').bind(player, since).first('s');
   if (best == null) return null;
   const ahead = await env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM (SELECT MAX(score) AS s FROM scores GROUP BY player) WHERE s > ?',
-  ).bind(best).first('n');
+    'SELECT COUNT(*) AS n FROM (SELECT MAX(score) AS s FROM scores WHERE created_at >= ? GROUP BY player) WHERE s > ?',
+  ).bind(since, best).first('n');
   return { best, rank: ahead + 1 };
+}
+
+// 歴代とデイリーを1回で返す（タブの切り替えで API を呼ばないため）。
+// top と mine の best・rank は、古いページ（歴代だけを見る）のために残している
+async function board(env, player) {
+  const dayStart = dayStartOf(Date.now());
+  const [all, daily, mAll, mDay] = await Promise.all([top(env, player, 0), top(env, player, dayStart),
+    player ? mine(env, player, 0) : null, player ? mine(env, player, dayStart) : null]);
+  return { all, daily, mine: mAll && { ...mAll, all: mAll, daily: mDay }, dayStart, top: all };
 }
 
 // IPv6 は /64 で丸める（同じ回線のまま末尾を変えて別人になれないように）
@@ -81,7 +95,7 @@ async function scores(request, env, url) {
   if (request.method === 'GET') {
     const player = url.searchParams.get('player');
     const p = okPlayer(player) ? player : '';
-    return json({ top: await top(env, p), mine: p ? await mine(env, p) : null });
+    return json(await board(env, p));
   }
   if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
@@ -92,6 +106,7 @@ async function scores(request, env, url) {
   const score = Number(body.score), monkeys = Number(body.monkeys), secs = Number(body.secs);
   if (!okPlayer(body.player)) return json({ error: 'bad player' }, 400);
   if (!name || [...name].length > NAME_MAX) return json({ error: 'name must be 1-8 characters' }, 400);
+  if (checkName(name) === 'ng') return json({ error: 'ng_name' }, 400); // 登録できない名前（連投制限より前に判定）
   const bad = checkRecord(score, monkeys, secs);
   if (bad) return json({ error: bad }, 400);
 
@@ -102,7 +117,7 @@ async function scores(request, env, url) {
 
   await env.DB.prepare('INSERT INTO scores (player, name, score, monkeys, secs, created_at, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(body.player, name, score, monkeys, Math.round(secs * 10) / 10, now, ip).run();
-  return json({ mine: await mine(env, body.player), top: await top(env, body.player) });
+  return json(await board(env, body.player));
 }
 
 // 英語版 /en/：SNS のクローラーは JS を動かさないので、head（lang・タイトル・説明・OGP・canonical）を英語に書き換えて返す。
