@@ -7,7 +7,7 @@
 // 先頭に /sarumo-kikara が付いて届くのは waqk.jp のルートから、付かないのは workers.dev・wrangler dev から
 import { checkName } from './name-filter.js'; // 正本は C:\src\shared\name-filter.js（ここでは直さない）
 
-const NAME_MAX = 8;
+const NAME_MAX = 10;
 const TOP_N = 20;
 const POST_INTERVAL_MS = 10_000; // 同じ人（IP）からの連投を防ぐ間隔
 // ありえない記録を弾く目安
@@ -101,11 +101,11 @@ async function scores(request, env, url) {
 
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
-  // 名前：制御文字・<> を除き、前後の空白を取って 8 文字まで
+  // 名前：制御文字・<> を除き、前後の空白を取って 10 文字まで
   const name = String(body.name ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim();
   const score = Number(body.score), monkeys = Number(body.monkeys), secs = Number(body.secs);
   if (!okPlayer(body.player)) return json({ error: 'bad player' }, 400);
-  if (!name || [...name].length > NAME_MAX) return json({ error: 'name must be 1-8 characters' }, 400);
+  if (!name || [...name].length > NAME_MAX) return json({ error: 'name must be 1-10 characters' }, 400);
   if (checkName(name) === 'ng') return json({ error: 'ng_name' }, 400); // 登録できない名前（連投制限より前に判定）
   const bad = checkRecord(score, monkeys, secs);
   if (bad) return json({ error: bad }, 400);

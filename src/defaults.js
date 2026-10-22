@@ -254,7 +254,7 @@ export const DEFAULTS = {
       // 属性の文言（画面の本文は index.html に日英を並べて書く）
       A11Y_CANVAS: "ゲーム画面",
       A11Y_NEXT: "ここからサルをドラッグして連れてくる",
-      NAME_PH: "ニックネーム（8文字まで）",
+      NAME_PH: "ニックネーム（10文字まで）",
       NAME_LABEL: "ニックネーム",
       IMG_ALT: "結果画像",
       SHARE: "サルも木から落ちぬん｜スコア {score}点（いちばん大きな群れ {best}匹／のこったサル {left}匹） #サルも木から落ちぬん",
@@ -299,7 +299,7 @@ export const DEFAULTS = {
       SOUND_OFF: "Sound off",
       A11Y_CANVAS: "Game screen",
       A11Y_NEXT: "Drag a monkey out from here",
-      NAME_PH: "Nickname (up to 8)",
+      NAME_PH: "Nickname (up to 10)",
       NAME_LABEL: "Nickname",
       IMG_ALT: "Result image",
       SHARE: "Monkeys Don't Fall | Score {score} (biggest troop {best} / monkeys left {left}) #MonkeysDontFall",

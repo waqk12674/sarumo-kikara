@@ -142,7 +142,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .rank .reg .pill{flex:0 0 auto}
 .rank ol,.rankDialog ol{margin:0;padding:0 0 0 2.2em;font-size:13px;line-height:1.75;font-variant-numeric:tabular-nums}
 .rank li,.rankDialog li{border-bottom:1px dotted rgba(90,78,64,.3)}
-.rank li span,.rankDialog li span{display:inline-block;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.rank li span,.rankDialog li span{display:inline-block;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .rank li b,.rankDialog li b{float:right;font-weight:700}
 .rank li.me,.rankDialog li.me{color:var(--shu);font-weight:800}
 .rank li.empty,.rankDialog li.empty{list-style:none;margin-left:-2.2em;text-align:center;color:var(--usuzumi)}
@@ -246,10 +246,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button class="pill" data-waqk-more-button><span lang="ja">ほかのゲーム</span><span lang="en">More games</span></button>
     </div>
     <div class="row tip"><a class="pill" href="https://ofuse.me/o?uid=225115" target="_blank" rel="noopener"><span lang="ja">開発者を応援</span><span lang="en">Support the dev</span></a></div>
-    <!-- ランキング（src/ranking.js）。登録は1〜8文字のニックネーム -->
+    <!-- ランキング（src/ranking.js）。登録は1〜10文字のニックネーム -->
     <section class="rank">
       <h2><span lang="ja">ランキング</span><span lang="en">Ranking</span></h2>
-      <div class="row reg" id="rankReg"><input id="rankName" maxlength="8" autocomplete="nickname" placeholder="ニックネーム（8文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill"><span lang="ja">登録</span><span lang="en">Submit</span></button></div>
+      <div class="row reg" id="rankReg"><input id="rankName" maxlength="10" autocomplete="nickname" placeholder="ニックネーム（10文字まで）" aria-label="ニックネーム"><button id="rankSend" class="pill"><span lang="ja">登録</span><span lang="en">Submit</span></button></div>
       <p id="rankMsg" aria-live="polite" hidden></p>
       <div class="tabs" id="rankTabs"><button type="button" data-tab="all" aria-pressed="true"><span lang="ja">歴代</span><span lang="en">All-time</span></button><button type="button" data-tab="daily" aria-pressed="false"><span lang="ja">デイリー</span><span lang="en">Daily</span></button></div>
       <p class="reset"><span lang="ja">毎日0時（日本時間）にリセット</span><span lang="en">Resets daily at 0:00 JST</span></p>
