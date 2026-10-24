@@ -24,6 +24,7 @@
 - ランキング（2026-10-17）：`worker/index.js`（`GET/POST api/scores`）＋ D1 `sarumo-kikara-scores`（id `6c5d4df5-2176-43a2-a84e-604aa6521841`、表は `schema.sql`）。画面側は `src/ranking.js`。Worker が動くのは `run_worker_first` の `/api/*`・`/sarumo-kikara/api/*` だけ。`worker/`・`schema.sql` は `.assetsignore` の許可リストに入っていないので公開されない。テスト版の記録は本公開のときに `DELETE FROM scores` で消す
 - Xでシェアの結果画像（2026-10-18）：押すと `src/result.js` が 1200×630 の JPEG（題字・点数は入れず全面が絵。サルがいちばん集まっている所に、サルの背丈が絵の高さの0.45倍になるまで寄った横長の絵。全員は入らなくてよい。調整は `CAMERA.SHARE_UP`）を `POST api/share` に送り、共有ページ `https://waqk.jp/sarumo-kikara/s/<id>`（OGP がその画像。noindex）でポストする。送れなければゲームの URL。画像は R2 `sarumo-shares`（`SHARES`、期限なし）、連投止めは D1 の `shares`（IP ハッシュ。IPv6 は /64）で同じ IP から1分5件、`share_days` で全体1日300件まで（`SHARE_PER_IP`・`SHARE_PER_DAY`）。`SHARE_RL`（Rate Limiting）は前段の間引きだけ：ロケーション内のマシンごとの近似で、本番では1つの IP から毎秒2件ほど通る（2026-10-18 に計測）。Worker が動くパスに `/s/*` が加わった。範囲チェックはランキングと共通の `checkRecord`（0点は共有ページを作らない）。消し方は README
   - ニックネームなど利用者が入力した文字は、共有の画像にもページにも入れない（プライバシーポリシー）
+- ランキングの取得（`board`・`fresh` in src/ranking.js）：ランキングの取得は、ページを開いて最初にランキングを出すときの1回と登録したときだけ。取得済みのものを使い回し、API の dayStart（日本時間0時）から24時間たったら取り直す（2026-10-24 運営者。結果画面のたびに取得すると、何回も遊ばれたときに Worker が PV の何倍も動く。perfect-ring で約8倍だった）
 
 ## 確認のしかた
 

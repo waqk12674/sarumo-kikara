@@ -1,5 +1,7 @@
-// ランキング：worker/index.js の api/scores を、結果画面を開いたとき・登録したとき・ランキングを開いたときだけ呼ぶ
-// （API は Worker が動くので、呼ぶたびに Workers のリクエストに数える。ポーリングしない）
+// ランキング：worker/index.js の api/scores を呼ぶのは、ページを開いて最初にランキングを出すとき（結果画面か画面下の札）と、登録したときだけ
+// 2回目からは取得済みのものを使い回し、登録したら返ってきた最新のものに置き換える。取得済みのものは dayStart（日本時間0時）から
+// 24時間たったら取り直す（0時をまたいでデイリーが古いままにならないように）
+// （API は Worker が動くので、呼ぶたびに Workers のリクエストに数える。結果画面のたびに取得すると、何回も遊ばれたときに Worker が PV の何倍も動く。2026-10-24 運営者。ポーリングしない）
 import { G, T } from "./state.js";
 import { fill } from "./util.js";
 
@@ -60,11 +62,14 @@ for (const v of [card, dlgView]) {
   });
 }
 
+let board = null; // 取得済みのランキング。読めなかったときは残さず、次に開いたときにもう一度取得する
+const fresh = (d) => d && Date.now() < d.dayStart + 864e5;
 async function load(v) {
   setTab(v, "all"); v.data = null; // 開くたびに歴代から
+  if (fresh(board)) { v.data = board; show(v); return; }
   v.msg.textContent = T.RANK_LOADING; v.msg.hidden = false; v.list.textContent = "";
   try {
-    v.data = (await call()).data;
+    v.data = board = (await call()).data;
     show(v);
   } catch (e) {
     v.msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_ERROR;
@@ -92,7 +97,7 @@ $("rankSend").addEventListener("click", async () => {
     if (status === 400 && data.error === "ng_name") { msg.textContent = T.RANK_NG; $("rankSend").disabled = false; $("rankName").focus(); return; }
     if (status !== 200) { msg.textContent = T.RANK_FAIL; return; }
     try { localStorage.setItem("skk_name", name); } catch {} // 登録できた名前だけ、次回の入力欄に入れる
-    card.data = data; show(card);
+    card.data = board = data; show(card);
     msg.textContent = fill(T.RANK_DONE, data.mine.all);
     $("rankReg").hidden = true;
   } catch (e) {
