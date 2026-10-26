@@ -258,11 +258,11 @@ export default {
       if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405);
       try { return await postShare(request, env); } catch { return json({ error: 'server error' }, 500); }
     }
-    const s = request.method === 'GET' && path.match(/^\/s\/([^/.]+)(\.jpg)?$/);
+    const s = ['GET', 'HEAD'].includes(request.method) && path.match(/^\/s\/([^/.]+)(\.jpg)?$/);
     if (s) return s[2] ? shareImage(request, env, ctx, s[1]) : sharePage(request, url, env, s[1]);
     // /en → /en/（相対の Location なので、waqk.jp では /sarumo-kikara/en/ になる）
     if (path === '/en') return new Response(null, { status: 301, headers: { Location: 'en/' + url.search } });
-    if (path === '/en/' && request.method === 'GET') return english(request, url, env);
+    if (path === '/en/' && ['GET', 'HEAD'].includes(request.method)) return english(request, url, env);
     return env.ASSETS.fetch(request);
   },
 };
