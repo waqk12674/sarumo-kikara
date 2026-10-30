@@ -62,14 +62,18 @@ for (const v of [card, dlgView]) {
   });
 }
 
-let board = null; // 取得済みのランキング。読めなかったときは残さず、次に開いたときにもう一度取得する
+// 取得済みのランキング。読めなかったときは残さず、次に開いたときにもう一度取得する。
+// 広告の帯を出したページの「もう一度」は読み直しなので、sessionStorage の skk_board に持ち越す（取り直すかは fresh で決める）
+let board = null;
+try { board = JSON.parse(sessionStorage.getItem("skk_board")); } catch {}
+const keep = (d) => { board = d; try { sessionStorage.setItem("skk_board", JSON.stringify(d)); } catch {} return d; };
 const fresh = (d) => d && Date.now() < d.dayStart + 864e5;
 async function load(v) {
   setTab(v, "all"); v.data = null; // 開くたびに歴代から
   if (fresh(board)) { v.data = board; show(v); return; }
   v.msg.textContent = T.RANK_LOADING; v.msg.hidden = false; v.list.textContent = "";
   try {
-    v.data = board = (await call()).data;
+    v.data = keep((await call()).data);
     show(v);
   } catch (e) {
     v.msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_ERROR;
@@ -83,7 +87,7 @@ export function onResult(r) {
   $("rankName").value = savedName();
   $("rankReg").hidden = !(r.score > 0); // 0点は登録しない
   $("rankSend").disabled = false;
-  load(card);
+  return load(card); // 読み込みを待ってから広告の帯の大きさを決める（一覧が入るとカードの位置が動くため。result.js の showBanner）
 }
 $("rankSend").addEventListener("click", async () => {
   const name = $("rankName").value.trim(), msg = $("rankMsg");
@@ -97,7 +101,7 @@ $("rankSend").addEventListener("click", async () => {
     if (status === 400 && data.error === "ng_name") { msg.textContent = T.RANK_NG; $("rankSend").disabled = false; $("rankName").focus(); return; }
     if (status !== 200) { msg.textContent = T.RANK_FAIL; return; }
     try { localStorage.setItem("skk_name", name); } catch {} // 登録できた名前だけ、次回の入力欄に入れる
-    card.data = board = data; show(card);
+    card.data = keep(data); show(card);
     msg.textContent = fill(T.RANK_DONE, data.mine.all);
     $("rankReg").hidden = true;
   } catch (e) {

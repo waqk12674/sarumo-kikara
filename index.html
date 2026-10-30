@@ -9,6 +9,51 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-NPJ5KTSD');</script>
 <!-- End Google Tag Manager -->
+<script>
+// ---------- 広告（秋刀魚・だし巻きの仕組みを写した。2026-10-30）：結果画面の上のバナーだけ（H5 は off）。プレイ中・開始前には出さない ----------
+// 全員の広告を止める（テレビの撮影など）：enabled を false にして push。撮影の1台だけなら URL に ?noads=1
+// だし巻きの i-mobile の帯は写していない（AdSense だけ）
+var ADS = {
+  enabled: true,   // false：バナーも H5 も止め、adsbygoogle.js も読まない
+  banner: true,    // 結果画面の上の広告の帯
+  bannerSlot: '4643513007',  // AdSense の広告ユニットの data-ad-slot。だし巻きの帯のユニットを使い回す（ゲームごとの収益は AdSense の Top pages で見る。2026-10-29 運営者）
+  h5: 'off',       // H5 ゲーム広告（adBreak）：'off' / 'test' / 'on'。このゲームはまだ使わない（'on' にするときは、秋刀魚の「もう一度」の adBreak も src/result.js に写す）
+};
+// ?noads=1：何も読まず、何も出さない。?adtest=1：テスト用の広告（収益に数えられない。H5 は 'test' で動く）
+// Cookie waqk_noads=1（ハブと共通・30日）：?noads=1 で付き、?noads=0 で消える。強い順に ?noads=1 → ?adtest=1 → ?noads=0 → Cookie
+(function () {
+  var q = new URLSearchParams(location.search);
+  var noads = q.get('noads');
+  if (noads === '1') document.cookie = 'waqk_noads=1; Path=/; Max-Age=2592000; Secure; SameSite=Lax';
+  if (noads === '0') document.cookie = 'waqk_noads=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+  // waqk.jp 以外（workers.dev・プレビュー URL・手元）は ?noads=1 と同じ扱いにし、?adtest=1 も効かせない（審査を通っていないドメインで広告を読まない。2026-10-29）。
+  // 手元（localhost）だけは、帯の位置を確かめる空の枠を出す（ADS.dry。showBanner で広告を読む前に戻る）
+  if (location.hostname !== 'waqk.jp') { ADS.dry = ADS.enabled && noads !== '1' && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); noads = '1'; }
+  if (q.get('debug') === '1' && noads !== '1') { ADS.dry = ADS.enabled; noads = '1'; } // ?debug=1（キー9の近道など）は本物の広告を読まず、空の帯だけ出す（2026-10-30 運営者）
+  ADS.test = q.get('adtest') === '1';
+  var off = noads === '1' || (!ADS.test && noads !== '0' && /(?:^|;\s*)waqk_noads=1(?:;|$)/.test(document.cookie));
+  if (!ADS.enabled || off) { ADS.banner = !!ADS.dry; ADS.h5 = 'off'; }
+  else if (ADS.test && ADS.h5 !== 'off') ADS.h5 = 'test'; // h5 が 'off' のときは ?adtest=1 でも head で読まない
+  // adsbygoogle.js は、H5 を使うときはここで、帯は帯を作るとき（showBanner）に初めて読む
+  ADS.load = function () {
+    if (ADS.script) return ADS.script;
+    var s = ADS.script = document.createElement('script');
+    s.async = true; s.crossOrigin = 'anonymous';
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5732693242027140';
+    if (ADS.h5 === 'test') s.setAttribute('data-adbreak-test', 'on');
+    // 広告ブロックなどで読めなければ「もう一度」もすぐ始め、そのページでは帯も作らない（ADS.failed。showBanner）
+    s.onerror = function () { ADS.failed = true; ADS.h5 = 'off'; };
+    document.head.appendChild(s);
+    window.adsbygoogle = window.adsbygoogle || [];
+    return s;
+  };
+  if (ADS.h5 === 'off') return;
+  ADS.load();
+  // H5 の準備（Google の公式の書き方）
+  window.adBreak = window.adConfig = function (o) { adsbygoogle.push(o); };
+  adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+})();
+</script>
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>サルも木から落ちぬん｜サルをつなげる無料ブラウザゲーム</title>
@@ -51,7 +96,13 @@ html[lang="ja"] [lang="en"],html[lang="en"] [lang="ja"],html[lang="ja"] [data-fo
 html,body{height:100%}
 body{margin:0;background:var(--washi);color:var(--sumi);font-family:var(--font-mincho);overflow:hidden;
   touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+#cv{position:fixed;inset:0;top:var(--adH,0px);width:100%;height:calc(100% - var(--adH,0px));display:block}
+/* 結果画面の上の広告の帯（src/result.js の showBanner）：ゲームの画面に重ねず、ページの上に並べ、ゲームの画面と結果画面はその下に縮める（--adH）。境目の線で、広告がゲームの一部に見えないように */
+#adTop{box-sizing:border-box;padding:calc(4px + env(safe-area-inset-top,0px)) 0 6px;background:var(--kinari);border-bottom:1.5px solid var(--line);display:flex;justify-content:center;overflow:hidden}
+#adTop .adLabel{font-size:10px;line-height:14px;color:var(--usuzumi)}
+#adTop ins{display:block}
+/* 帯を出したら、帯に重なる上の札・風・数値表示を隠す（そのページは結果画面のまま。「もう一度」は読み直し） */
+html.adOn .hud,html.adOn .wind,html.adOn .dbg{visibility:hidden}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
 
@@ -124,7 +175,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .dbg{position:fixed;left:8px;top:calc(var(--hud-h,120px) + 40px);z-index:2;margin:0;font:11px/1.4 ui-monospace,monospace;
   background:rgba(246,240,226,.85);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre}
 
-.result{position:fixed;inset:0;background:var(--scrim);z-index:5;display:flex;justify-content:center;
+.result{position:fixed;inset:0;top:var(--adH,0px);background:var(--scrim);z-index:5;display:flex;justify-content:center;
   padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);overflow:auto;touch-action:auto}
 .card{margin:auto 0;background:var(--kinari);border:1.5px solid var(--line);border-radius:14px;width:min(420px,100%);padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text}
 .card img{display:block;width:100%;height:auto;max-height:58vh;object-fit:contain;border-radius:4px;-webkit-touch-callout:default}

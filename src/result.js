@@ -6,6 +6,7 @@ import { attached, groups } from "./grab.js";
 import { setWindBanner } from "./wind.js";
 import { play } from "./audio.js";
 import { onResult } from "./ranking.js";
+import { resize } from "./camera.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
 const SNAP_W = 738, SNAP_H = 1312;
@@ -73,12 +74,44 @@ export async function finish() {
   try { await Promise.all([document.fonts.load(`800 64px ${FONT}`, all), document.fonts.load(`700 40px ${FONT}`, all)]); } catch {}
   const card = buildCard(G.finalCount, placed, best);
   resultText = fill(T.SHARE, { score: G.score, best: best.size, left: G.finalCount });
-  document.getElementById("cardImg").src = card.toDataURL("image/png");
+  const img = document.getElementById("cardImg");
+  img.src = card.toDataURL("image/png");
+  try { await img.decode(); } catch {} // 絵の高さが決まってから出す（広告の帯の判定で、ボタンの位置を測るため）
   document.getElementById("result").hidden = false;
   play("result");
   record = { score: G.score, monkeys: placed, secs: Math.round(G.simT * 10) / 10 };
   shareId = null;
-  onResult(record);
+  await onResult(record);
+  if (G.state === "result") showBanner();
+}
+
+// 結果画面の上の広告の帯（設定は index.html の head の ADS。秋刀魚・だし巻きと同じ仕組み）：結果画面が出たときに1ページ1回だけ作り、一度出したら消さない（帯を出したページの「もう一度」は読み直し。main.js の restart）。
+// 帯の下端から一番近い押せるもの（画像の下の「Xでシェア」の行）まで 150px 取れて、その行が画面に収まる大きさ（PC 728×90、スマホ 320×50）を選び、
+// 取れない（横向きのスマホなど）なら作らない。ランキングの一覧が入るとカードの位置が動くので、読み込みのあとで測る（finish）。共有ページ /s/… では出さない。
+// adsbygoogle.js はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
+function showBanner() {
+  if (!ADS.banner || G.bandH || ADS.failed || !ADS.bannerSlot || location.pathname.includes("/s/")) return;
+  if (innerWidth > innerHeight && innerHeight < 500) return; // 横向きのスマホ（844×390 など）は帯なし（全ゲーム共通。運営者承認済み）
+  const root = document.documentElement, res = document.getElementById("result"), btn = document.getElementById("share");
+  const setBand = (h) => { G.bandH = h; root.style.setProperty("--adH", h + "px"); root.classList.toggle("adOn", h > 0); };
+  for (const [w, h] of [[728, 90], [320, 50]]) {
+    if (w > innerWidth - 16) continue;
+    const band = document.createElement("div"); band.id = "adTop";
+    band.innerHTML = `<div style="width:${w}px"><div class="adLabel"><span lang="ja">広告</span><span lang="en">Advertisement</span></div><div style="height:${h}px"></div></div>`;
+    document.body.prepend(band); // ゲームの画面・結果画面（fixed）は --adH で帯の下に下げる。描く前に測って、合わなければ外す
+    setBand(band.offsetHeight);
+    // offsetTop は結果画面（#result）の上端＝帯の下端からの位置。スクロールしても変わらない
+    if (btn.offsetTop < 150 || btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); continue; }
+    resize();
+    if (ADS.dry) return; // 手元：空の枠だけ出し、広告のスクリプトは読まない
+    ADS.load().addEventListener("error", () => { ADS.failed = true; band.remove(); setBand(0); resize(); });
+    // レスポンシブのユニットだが、data-ad-format は付けず full-width-responsive を切って、枠より広がらないようにする
+    const ins = document.createElement("ins");
+    ins.className = "adsbygoogle"; ins.style.cssText = `width:${w}px;height:${h}px`;
+    Object.assign(ins.dataset, { adClient: "ca-pub-5732693242027140", adSlot: ADS.bannerSlot, fullWidthResponsive: "false" }, ADS.test ? { adtest: "on" } : {});
+    band.firstChild.lastChild.replaceWith(ins); (window.adsbygoogle = window.adsbygoogle || []).push({});
+    return;
+  }
 }
 
 function outlined(g, text, x, y, lw) {

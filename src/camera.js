@@ -26,7 +26,8 @@ export function contentBox(includeHeld, margin) {
 export function resize() {
   G.dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = innerWidth, h = innerHeight;
-  cv.width = Math.round(w * G.dpr); cv.height = Math.round(h * G.dpr);
+  // 広告の帯を出したら、画面（cv）は帯の下に縮める。映す範囲（frame0・G.view）は帯のないときのままにして、絵の上側を切る（main.js の描画で oy から帯の高さを引く）
+  cv.width = Math.round(w * G.dpr); cv.height = Math.round((h - G.bandH) * G.dpr);
   const top = hud.getBoundingClientRect().bottom + 2, bottom = 52;
   document.documentElement.style.setProperty("--hud-h", top - 2 + "px");
   frame0 = { top, avail: Math.max(200, h - top - bottom) };

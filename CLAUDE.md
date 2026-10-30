@@ -29,7 +29,7 @@
 ## 確認のしかた
 
 - ローカルサーバー：`python -m http.server 8124`（石の上にも三年の8123と分ける）
-- URLパラメータ：`?debug=1`（調整パネルと数値表示。コンソールに `__saru`：`step(n)` で物理を進められる）、`?seed=N`、`?god=1`（落ちない）
+- URLパラメータ：`?debug=1`（調整パネルと数値表示。コンソールに `__saru`：`step(n)` で物理を進められる。キー `9` ですぐ結果画面）、`?seed=N`、`?god=1`（落ちない）
 - ブラウザのペインが隠れているとループ（requestAnimationFrame）が止まる。自動で確かめるときは `__saru.step(n)` で進める
 - ランキングの API は `python -m http.server` では動かない（「オンライン版だけ」と出る）。Worker ごと確かめるときは、D1 の表を `npx wrangler d1 execute sarumo-kikara-scores --local --persist-to <フォルダの外> --file=schema.sql` で作ってから `npx wrangler dev --port 8790 --persist-to <フォルダの外>`。止めるときは node の wrangler と workerd の両方を止める（片方だけだと workerd が立ち直る）
 - `python -m http.server` だと、直した src/*.js がブラウザのキャッシュから古いまま読まれることがある。確かめる前に `fetch(path,{cache:"reload"})` で取り直すか、ハード再読み込みする
@@ -67,8 +67,10 @@
 
 - `html lang="ja"` と `title` を JS で書き換えない。/sarumo-kikara/ は常に日本語、英語版は /sarumo-kikara/en/ だけ。言語判定で head を書き換えたり /en/ へ転送したりしない
 - 遊び方は HTML の本文としても置く（文字数稼ぎはしない）
-- 広告は AdSense 承認後、結果→「もう一回」などの区切りだけ。プレイ中・開始前・操作のたびには出さない。クリックを誘う文言は使わない
+- 広告は結果画面の上の帯だけ（2026-10-30 運営者。秋刀魚・だし巻きと同じ仕組み）。設定は index.html の head の `ADS`（`enabled:false` で push すれば全員止まる。`?noads=1`・`?adtest=1`、waqk.jp 以外では読まない。手元は空の枠だけ）。H5（adBreak）は `h5:'off'` で使っていない。プレイ中・開始前・操作のたびには出さない。クリックを誘う文言は使わない
+  - 帯は `src/result.js` の `showBanner`（ランキングの読み込みのあとで、帯の下端から「Xでシェア」の行まで150px・その行が画面に収まる大きさを 728×90→320×50 で選ぶ。取れなければ出さない。横向きのスマホ（横長で高さ500未満）と共有ページ /s/… では出さない）。ゲームの画面と結果画面は `--adH` で帯の下に縮め、絵は上側を切る（camera.js の resize・main.js の描画の oy）。帯を出したら上の札（.hud）・風・数値表示を隠す
+  - 帯を出したページ（`G.bandH`>0）だけ、「もう一度」「やり直す」は読み直し（sessionStorage の `skk_autostart` で遊び方を出さずに始める）。ランキングは sessionStorage の `skk_board` に持ち越し、取り直すかは今までどおり `fresh` で決める
 - 画面サイズ固定（ドラッグでページがスクロールしない）
 - 配信は「ゲームごとの Worker ルート `waqk.jp/sarumo-kikara/*`＋`_redirects` の `/sarumo-kikara/* /:splat 200` で静的配信」。run_worker_first は処理が必要なパスだけ。`.assetsignore` は許可リスト方式
-- localStorage のキーは `skk_` で始める（`skk_muted`・`skk_player`・`skk_name`）
+- localStorage のキーは `skk_` で始める（`skk_muted`・`skk_player`・`skk_name`）。sessionStorage も同じ（`skk_autostart`・`skk_board`）
 - 公開URL・OGPのURLは `https://waqk.jp/sarumo-kikara/` で書く

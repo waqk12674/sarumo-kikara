@@ -87,8 +87,15 @@ function updateHud() {
   document.getElementById("cntSub").textContent = groups().bestOn;
 }
 
-document.getElementById("resetBtn").addEventListener("click", init);
-document.getElementById("again").addEventListener("click", init);
+// もう一度・やり直す：ふだんはページ内でやり直す。広告の帯を出したページ（G.bandH>0。手元の空の帯も）だけは読み直し、
+// 帯を外して遊び方を出さずに始める（skk_autostart の印。sessionStorage が使えなければ遊び方から）
+function restart() {
+  if (!G.bandH) { init(); return; }
+  try { sessionStorage.setItem("skk_autostart", "1"); } catch {}
+  location.reload();
+}
+document.getElementById("resetBtn").addEventListener("click", restart);
+document.getElementById("again").addEventListener("click", restart);
 
 // ---------- ?debug=1：調整パネルと数値表示 ----------
 const dbgInfo = document.getElementById("dbgInfo");
@@ -107,6 +114,12 @@ if (DEBUG) {
   }
   // コンソールから試すための入り口
   window.__saru = { G, P, TYPES, step: (n) => { for (let k = 0; k < n; k++) step(); }, release };
+  // キー 9：すぐ結果画面を出す（画面の確認用。ランキングは取得だけで登録しない）
+  addEventListener("keydown", (e) => {
+    if (e.key !== "9" || G.state !== "play") return;
+    if (howto.open) howto.close();
+    G.finalCount = groups().onTree; finish();
+  });
 }
 function updateDebug() {
   const worst = G.monkeys.reduce((a, m) => Math.max(a, m.strain || 0), 0);
@@ -129,7 +142,7 @@ function frame(tn) {
   fitCam(false);
   G.shake *= 0.86;
   const sx = (Math.random() - 0.5) * G.shake, sy = (Math.random() - 0.5) * G.shake, v = G.view, d = G.dpr;
-  drawScene(ctx, cv.width, cv.height, v.s * d, (v.ox + sx) * d, (v.oy + sy) * d, { fx: true, held: true });
+  drawScene(ctx, cv.width, cv.height, v.s * d, (v.ox + sx) * d, (v.oy - G.bandH + sy) * d, { fx: true, held: true }); // 帯の下に縮めた画面は、上側を切る（camera.js の resize）
   requestAnimationFrame(frame);
 }
 
@@ -144,7 +157,11 @@ loadMonkeys().then(() => {
   boot.remove();
   init(); resize();
   addEventListener("resize", resize);
-  G.paused = true; howto.showModal(); // 遊び方を出して、「はじめる」まで止めておく（そのタップで環境音も鳴りはじめる）
+  // 遊び方を出して、「はじめる」まで止めておく（そのタップで環境音も鳴りはじめる）。
+  // 帯を出したページの「もう一度」で読み直したときは出さずに始める（音は最初のタップで鳴りはじめる。audio.js）
+  let auto = false;
+  try { auto = sessionStorage.getItem("skk_autostart") === "1"; sessionStorage.removeItem("skk_autostart"); } catch {}
+  if (!auto) { G.paused = true; howto.showModal(); }
   requestAnimationFrame(frame);
 }, (err) => {
   console.error(err);
