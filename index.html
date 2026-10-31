@@ -203,7 +203,9 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .tabs button[aria-pressed="true"]{background:var(--sumi);border-color:var(--sumi);color:var(--kinari)}
 .card p.reset,.rankDialog p.reset{margin:-2px 0 0;font-size:11px}
 .rankDialog{width:min(340px,calc(100% - 32px));box-sizing:border-box;background:var(--kinari);color:var(--sumi);border:1.5px solid var(--line);border-radius:14px;padding:14px;font-family:var(--font-mincho)}
-.rankDialog::backdrop{background:var(--scrim)}
+.rankDialog::backdrop{background:var(--scrim);top:var(--adH,0px)}
+/* 広告の帯があるときは、暗幕もダイアログも帯に重ねず、押せる部品を帯の下端から 150px 離す（giraffe-climb と同じ。2026-10-31） */
+body:has(#adTop) .rankDialog{top:calc(var(--adH) + 150px);max-height:calc(100dvh - var(--adH) - 166px)}
 .rankDialog p{margin:6px 0;font-size:12px;color:var(--usuzumi);text-align:center}
 .rankDialog .pill{display:block;margin:10px auto 0;border:1.5px solid var(--line);border-radius:999px;padding:8px 22px;font-weight:700;background:rgba(240,233,219,.88)}
 .howto{width:min(360px,calc(100% - 32px));box-sizing:border-box;max-height:calc(100% - 32px);overflow:auto;background:var(--kinari);color:var(--sumi);
