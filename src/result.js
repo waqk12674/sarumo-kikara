@@ -100,8 +100,8 @@ function showBanner() {
     band.innerHTML = `<div style="width:${w}px"><div class="adLabel"><span lang="ja">広告</span><span lang="en">Advertisement</span></div><div style="height:${h}px"></div></div>`;
     document.body.prepend(band); // ゲームの画面・結果画面（fixed）は --adH で帯の下に下げる。描く前に測って、合わなければ外す
     setBand(band.offsetHeight);
-    // offsetTop は結果画面（#result）の上端＝帯の下端からの位置。スクロールしても変わらない
-    if (btn.offsetTop < 150 || btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); continue; }
+    // 結果画面は帯の下端から150px 下に始まる（html.adOn .result）ので、ボタンは必ず150px 以上離れる。offsetTop は結果画面の上端からの位置で、スクロールしても変わらない
+    if (btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); continue; }
     resize();
     if (ADS.dry) return; // 手元：空の枠だけ出し、広告のスクリプトは読まない
     ADS.load().addEventListener("error", () => { ADS.failed = true; band.remove(); setBand(0); resize(); });

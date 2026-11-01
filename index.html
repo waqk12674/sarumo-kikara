@@ -103,6 +103,9 @@ body{margin:0;background:var(--washi);color:var(--sumi);font-family:var(--font-m
 #adTop ins{display:block}
 /* 帯を出したら、帯に重なる上の札・風・数値表示を隠す（そのページは結果画面のまま。「もう一度」は読み直し） */
 html.adOn .hud,html.adOn .wind,html.adOn .dbg{visibility:hidden}
+/* 結果画面（スクロールする箱）は帯の下端から150px 下に始める。中をスクロールしても、押せる部品が帯に近づかない（2026-11-01）。間は覆って、ゲームの画面を押せないようにする */
+html.adOn .result{top:calc(var(--adH,0px) + 150px)}
+html.adOn body::before{content:"";position:fixed;left:0;right:0;top:var(--adH,0px);height:150px;z-index:5;background:var(--scrim)}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--shu);outline-offset:2px}
 
