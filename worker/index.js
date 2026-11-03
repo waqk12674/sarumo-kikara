@@ -8,7 +8,7 @@
 import { checkName } from './name-filter.js'; // 正本は C:\src\shared\name-filter.js（ここでは直さない）
 
 const NAME_MAX = 10;
-const TOP_N = 20;
+const TOP_N = 100;
 const POST_INTERVAL_MS = 10_000; // 同じ人（IP）からの連投を防ぐ間隔
 // ありえない記録を弾く目安
 const MAX_DEPTH = 15;       // 鎖の深さの上限（地面までの高さで決まる）。1匹の点はこれを超えない

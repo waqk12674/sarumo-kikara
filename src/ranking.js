@@ -1,4 +1,5 @@
-// ランキング：worker/index.js の api/scores を呼ぶのは、ページを開いて最初にランキングを出すとき（結果画面か画面下の札）と、登録したときだけ
+// ランキング：worker/index.js の api/scores を呼ぶのは、ページを開いて最初にランキングを開くとき（結果画面の「ランキング」か画面下の札）と、登録したときだけ
+// 結果画面は「ランキング」でカードの中に開く（2026-11-03 運営者。corn・linesman と同じ）。表は TOP100 で、表の中だけスクロールし、自分の行まで表の中で自動スクロールする
 // 2回目からは取得済みのものを使い回し、登録したら返ってきた最新のものに置き換える。取得済みのものは dayStart（日本時間0時）から
 // 24時間たったら取り直す（0時をまたいでデイリーが古いままにならないように）
 // （API は Worker が動くので、呼ぶたびに Workers のリクエストに数える。結果画面のたびに取得すると、何回も遊ばれたときに Worker が PV の何倍も動く。2026-10-24 運営者。ポーリングしない）
@@ -27,7 +28,7 @@ async function call(opts) {
   return { status: r.status, data: await r.json() };
 }
 
-// TOP20 を ol に描く（自分の記録は色を変える）
+// TOP100 を ol に描く（自分の記録は色を変える）
 function render(list, top) {
   list.textContent = "";
   if (!top.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = T.RANK_EMPTY; list.append(li); return; }
@@ -52,6 +53,25 @@ function show(v) {
   render(v.list, v.data[v.tab]);
   const m = v.data.mine && v.data.mine[v.tab];
   v.msg.textContent = m ? fill(v.tab === "daily" ? T.RANK_MINE_DAY : T.RANK_MINE, m) : ""; v.msg.hidden = !m;
+  if (v === card) fitGap();
+  toMe(v.list);
+}
+// 自分の行を表の真ん中あたりへ（表の中だけを動かす。scrollIntoView はカードやページまで動かすので使わない）
+function toMe(list) {
+  const me = list.querySelector(".me");
+  list.scrollTop = me ? me.offsetTop - (list.clientHeight - me.offsetHeight) / 2 : 0;
+}
+// 帯（html.adOn。src/result.js の showBanner）があるとき、結果画面は帯の下端から --adGap（150px）下に始まる。
+// 帯を出したときとランキングを開け閉めしたときに、押せる部品と表の上端を帯の下端から 150px 以上に保ったまま、その上の結果画像の分だけ --adGap を縮めてカードを上へ伸ばす。
+// それでも入らない画面は 150px のまま（カードの中をスクロール。カードの上端が帯から150px より下なので、押せる部品は近づかない）
+export function fitGap() {
+  const band = $("adTop"), root = document.documentElement, el = $("result").querySelector(".card");
+  if (!band || !root.classList.contains("adOn")) return;
+  root.style.setProperty("--adGap", "150px"); el.scrollTop = 0;
+  const first = [...el.querySelectorAll("button, input, a, ol")].find((e) => e.getClientRects().length);
+  // 150px のとき first は帯から (150 + off) の所にある。--adGap を (150 − off) にすると、カードが画面いっぱいなら first はちょうど 150px になる（いっぱいでなければ中央寄せで半分しか上がらず、もっと離れる）
+  root.style.setProperty("--adGap", Math.max(16, 300 - (first.getBoundingClientRect().top - band.getBoundingClientRect().bottom)) + "px");
+  if (el.scrollHeight > el.clientHeight) root.style.setProperty("--adGap", "150px");
 }
 for (const v of [card, dlgView]) {
   v.tabs.addEventListener("click", (e) => {
@@ -87,8 +107,18 @@ export function onResult(r) {
   $("rankName").value = savedName();
   $("rankReg").hidden = !(r.score > 0); // 0点は登録しない
   $("rankSend").disabled = false;
-  return load(card); // 読み込みを待ってから広告の帯の大きさを決める（一覧が入るとカードの位置が動くため。result.js の showBanner）
+  // 結果画面を出すたびに閉じた状態から。ここでは API を呼ばない（「ランキング」を押したときに load）
+  card.data = null; $("rankMsg").hidden = true;
+  $("rankBox").hidden = true; $("rankToggle").setAttribute("aria-expanded", "false");
+  fitGap();
 }
+$("rankToggle").addEventListener("click", () => {
+  const box = $("rankBox");
+  box.hidden = !box.hidden;
+  $("rankToggle").setAttribute("aria-expanded", String(!box.hidden));
+  if (box.hidden || !card.data) fitGap();
+  if (!box.hidden) { if (card.data) show(card); else load(card); }
+});
 $("rankSend").addEventListener("click", async () => {
   const name = $("rankName").value.trim(), msg = $("rankMsg");
   if (!name) { msg.textContent = T.RANK_NAME; msg.hidden = false; $("rankName").focus(); return; }
@@ -101,9 +131,9 @@ $("rankSend").addEventListener("click", async () => {
     if (status === 400 && data.error === "ng_name") { msg.textContent = T.RANK_NG; $("rankSend").disabled = false; $("rankName").focus(); return; }
     if (status !== 200) { msg.textContent = T.RANK_FAIL; return; }
     try { localStorage.setItem("skk_name", name); } catch {} // 登録できた名前だけ、次回の入力欄に入れる
+    $("rankReg").hidden = true; // 先に隠してから描く（fitGap が登録の欄の分まで入れて測らないように）
     card.data = keep(data); show(card);
     msg.textContent = fill(T.RANK_DONE, data.mine.all);
-    $("rankReg").hidden = true;
   } catch (e) {
     msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_FAIL;
     $("rankSend").disabled = false;

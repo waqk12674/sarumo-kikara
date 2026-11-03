@@ -5,7 +5,7 @@ import { blob, drawScene, PAPER_TILE } from "./render.js";
 import { attached, groups } from "./grab.js";
 import { setWindBanner } from "./wind.js";
 import { play } from "./audio.js";
-import { onResult } from "./ranking.js";
+import { onResult, fitGap } from "./ranking.js";
 import { resize } from "./camera.js";
 
 const CANOPY = cfg.CAMERA.CANOPY;
@@ -87,7 +87,7 @@ export async function finish() {
 
 // 結果画面の上の広告の帯（設定は index.html の head の ADS。秋刀魚・だし巻きと同じ仕組み）：結果画面が出たときに1ページ1回だけ作り、一度出したら消さない（帯を出したページの「もう一度」は読み直し。main.js の restart）。
 // 帯の下端から一番近い押せるもの（画像の下の「Xでシェア」の行）まで 150px 取れて、その行が画面に収まる大きさ（PC 728×90、スマホ 320×50）を選び、
-// 取れない（横向きのスマホなど）なら作らない。ランキングの一覧が入るとカードの位置が動くので、読み込みのあとで測る（finish）。共有ページ /s/… では出さない。
+// 取れない（横向きのスマホなど）なら作らない。ランキングは閉じた状態で測る（開くと src/ranking.js の fitGap が、押せる部品と表の上端を帯から150px 以上に保つ）。共有ページ /s/… では出さない。
 // adsbygoogle.js はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
 function showBanner() {
   if (!ADS.banner || G.bandH || ADS.failed || !ADS.bannerSlot || location.pathname.includes("/s/")) return;
@@ -103,6 +103,7 @@ function showBanner() {
     // 結果画面は帯の下端から150px 下に始まる（html.adOn .result）ので、ボタンは必ず150px 以上離れる。offsetTop は結果画面の上端からの位置で、スクロールしても変わらない
     if (btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); continue; }
     resize();
+    fitGap(); // 結果画像の分だけカードを上へ伸ばす（押せる部品は帯から150px 以上のまま）
     if (ADS.dry) return; // 手元：空の枠だけ出し、広告のスクリプトは読まない
     ADS.load().addEventListener("error", () => { ADS.failed = true; band.remove(); setBand(0); resize(); });
     // レスポンシブのユニットだが、data-ad-format は付けず full-width-responsive を切って、枠より広がらないようにする
