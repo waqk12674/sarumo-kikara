@@ -42,8 +42,8 @@ function render(list, top) {
 }
 
 // 歴代（all）／デイリー（daily）のタブ。1回の取得で両方届くので、切り替えでは API を呼ばない
-const card = { list: $("rankList"), msg: $("rankMsg"), tabs: $("rankTabs"), tab: "daily", data: null };
-const dlgView = { list: $("rankDlgList"), msg: $("rankDlgMsg"), tabs: $("rankDlgTabs"), tab: "daily", data: null };
+const card = { list: $("rankList"), msg: $("rankMsg"), tabs: $("rankTabs"), tab: "all", data: null };
+const dlgView = { list: $("rankDlgList"), msg: $("rankDlgMsg"), tabs: $("rankDlgTabs"), tab: "all", data: null };
 function setTab(v, tab) {
   v.tab = tab;
   for (const b of v.tabs.children) b.setAttribute("aria-pressed", String(b.dataset.tab === tab));
@@ -89,7 +89,7 @@ try { board = JSON.parse(sessionStorage.getItem("skk_board")); } catch {}
 const keep = (d) => { board = d; try { sessionStorage.setItem("skk_board", JSON.stringify(d)); } catch {} return d; };
 const fresh = (d) => d && Date.now() < d.dayStart + 864e5;
 async function load(v) {
-  setTab(v, "daily"); v.data = null; // 開くたびにデイリーから
+  setTab(v, "all"); v.data = null; // 開くたびに歴代から
   if (fresh(board)) { v.data = board; show(v); return; }
   v.msg.textContent = T.RANK_LOADING; v.msg.hidden = false; v.list.textContent = "";
   try {
