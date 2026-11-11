@@ -76,3 +76,4 @@
 - 配信は「ゲームごとの Worker ルート `waqk.jp/sarumo-kikara/*`＋`_redirects` の `/sarumo-kikara/* /:splat 200` で静的配信」。run_worker_first は処理が必要なパスだけ。`.assetsignore` は許可リスト方式
 - localStorage のキーは `skk_` で始める（`skk_muted`・`skk_player`・`skk_name`）。sessionStorage も同じ（`skk_autostart`・`skk_board`）
 - 公開URL・OGPのURLは `https://waqk.jp/sarumo-kikara/` で書く
+- GA4 のイベント（2026-11-12。トップのプレイ回数にも使う）：`state.js` の `ga()`。`game_start` は1プレイの最初に札からサルを連れてきたとき1回（`G.gaStarted`。`init()` で戻す）。`game_end` は結果画面（`finish`。result なし）、`game_retry` は「もう一度」「やり直す」（`restart`）、`share` は Xでシェア

@@ -1,5 +1,5 @@
 // 起動・ループ・画面の切り替え・HUD・?debug=1 の調整パネル
-import { G, cfg, P, T, CAT, DEBUG, GOD, newRand, pop } from "./state.js";
+import { G, cfg, P, T, CAT, DEBUG, GOD, newRand, pop, ga } from "./state.js";
 import { now } from "./util.js";
 import { TRUNK_X, GROUND_Y, buildTree, stepTree } from "./tree.js";
 import { TYPES, loadMonkeys, applyScale, randType } from "./monkeys.js";
@@ -42,7 +42,7 @@ function init() {
     }
   });
   Object.assign(G, {
-    monkeys: [], held: null, state: "play", canSpawnAt: now() + 200, simT: 0, firstGrabAt: 0,
+    monkeys: [], held: null, state: "play", gaStarted: false, canSpawnAt: now() + 200, simT: 0, firstGrabAt: 0,
     pops: [], rings: [], sparks: [], flash: null, score: 0, best: null, recentGroups: [], shake: 0, dragging: false,
     wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 }, lastType: null,
   });
@@ -90,6 +90,7 @@ function updateHud() {
 // もう一度・やり直す：ふだんはページ内でやり直す。広告の帯を出したページ（G.bandH>0。手元の空の帯も）だけは読み直し、
 // 帯を外して遊び方を出さずに始める（skk_autostart の印。sessionStorage が使えなければ遊び方から）
 function restart() {
+  ga("game_retry");
   if (!G.bandH) { init(); return; }
   try { sessionStorage.setItem("skk_autostart", "1"); } catch {}
   location.reload();

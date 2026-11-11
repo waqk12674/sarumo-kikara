@@ -21,6 +21,8 @@ export const newRand = () => (SEED === null ? Math.random : rng(SEED + runs++));
 
 export const COLOR = { SUMI: "#3D3833", KINARI: "#F6F0E2", SHU: "#B5655A", USUZUMI: "#7A7068" };
 export const FONT = '"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif';
+// GA4（GTM）のイベント。game_start は1プレイの最初の操作（札からサルを連れてきた）で1回（G.gaStarted。init で戻す）。トップのプレイ回数にも使う
+export const ga = (event, o) => (window.dataLayer = window.dataLayer || []).push({ event, game_id: "sarumo-kikara", ...o });
 export const ink = (a) => `rgba(61,54,48,${a})`;
 
 // 1回のプレイの状態（main.js の init() で作り直す）

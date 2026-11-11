@@ -1,5 +1,5 @@
 // 結果：木にいるサルがいちばん多かった瞬間を撮っておき、結果画像をつくる（SPEC.md §9）
-import { G, cfg, T, LANG, COLOR, FONT } from "./state.js";
+import { G, cfg, T, LANG, COLOR, FONT, ga } from "./state.js";
 import { now, fill } from "./util.js";
 import { blob, drawScene, PAPER_TILE } from "./render.js";
 import { attached, groups } from "./grab.js";
@@ -79,6 +79,7 @@ export async function finish() {
   try { await img.decode(); } catch {} // 絵の高さが決まってから出す（広告の帯の判定で、ボタンの位置を測るため）
   document.getElementById("result").hidden = false;
   play("result");
+  ga("game_end");
   record = { score: G.score, monkeys: placed, secs: Math.round(G.simT * 10) / 10 };
   shareId = null;
   await onResult(record);
@@ -236,6 +237,7 @@ async function uploadShare() {
 const shareBtn = document.getElementById("share");
 shareBtn.addEventListener("click", async () => {
   if (shareBtn.disabled) return;
+  ga("share", { method: "x" });
   shareBtn.disabled = true;
   const w = window.open("", "_blank");
   let url = URL;

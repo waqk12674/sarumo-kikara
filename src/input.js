@@ -1,5 +1,5 @@
 // 入力：右上の札からサルを連れてくる／置いたサルを持ち上げて置きなおす（SPEC.md §1）
-import { G, cfg, T, pop } from "./state.js";
+import { G, cfg, T, pop, ga } from "./state.js";
 import { now, dist } from "./util.js";
 import { makeMonkey, randType, pointW } from "./monkeys.js";
 import { release } from "./grab.js";
@@ -37,6 +37,7 @@ function spawnHeld(x, y) {
   const m = makeMonkey(G.nextType, x, y);
   Body.setStatic(m.body, true); m.body.isSensor = true; m.held = true;
   G.held = m; G.monkeys.push(m); Composite.add(G.world, m.body);
+  if (!G.gaStarted) { G.gaStarted = true; ga("game_start"); }
   G.nextType = randType(); updateNext();
   play("pon");
 }
