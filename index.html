@@ -12,26 +12,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <script>
 // ---------- 広告（秋刀魚・だし巻きの仕組みを写した。2026-10-30）：結果画面の上のバナーだけ（H5 は off）。プレイ中・開始前には出さない ----------
 // 全員の広告を止める（テレビの撮影など）：enabled を false にして push。撮影の1台だけなら URL に ?noads=1
-// だし巻きの i-mobile の帯は写していない（AdSense だけ）
+// だし巻きの i-mobile（'imobile'）の帯・AdX の振り分け（adx_ratio）は写していない
 var ADS = {
   enabled: true,   // false：バナーも H5 も止め、adsbygoogle.js も読まない
+  // 帯の広告：728×90 が入る画面（PC）は provider_pc、入らない画面（スマホ・320×50）は provider_sp。
+  // 'adx'：i-mobile 経由の Google AdX（smarttag）。adsbygoogle.js は読まない。2026-11-11 から PC・スマホとも 'adx'（試験。'adsense' に戻せば AdSense の帯）
+  provider_pc: 'adx',
+  provider_sp: 'adx',
+  adx_spot_pc: '1951588', // PC の帯（728×90）
+  adx_spot_sp: '1951587', // スマホの帯（320×50）
   banner: true,    // 結果画面の上の広告の帯
   bannerSlot: '4643513007',  // AdSense の広告ユニットの data-ad-slot。だし巻きの帯のユニットを使い回す（ゲームごとの収益は AdSense の Top pages で見る。2026-10-29 運営者）
   h5: 'off',       // H5 ゲーム広告（adBreak）：'off' / 'test' / 'on'。このゲームはまだ使わない（'on' にするときは、秋刀魚の「もう一度」の adBreak も src/result.js に写す）
 };
 // ?noads=1：何も読まず、何も出さない。?adtest=1：テスト用の広告（収益に数えられない。H5 は 'test' で動く）
-// Cookie waqk_noads=1（ハブと共通・30日）：?noads=1 で付き、?noads=0 で消える。強い順に ?noads=1 → ?adtest=1 → ?noads=0 → Cookie
+// Cookie waqk_noads=1（ハブと共通・30日）：?noads=1 で付き、?noads=0 で消える。強い順に ?noads=1 → ?adtest=1・?adprov=adx → ?noads=0 → Cookie
+// ?adprov=adx / ?adprov=adsense：そのページだけ provider_pc・provider_sp の両方を変える（試験用。Cookie には残さない）。?adprov=adx のときは Cookie があっても帯を出す
+// AdX の帯の画面で ?adtest=1 なら、広告を読まず空の帯だけ出す（AdX にはテスト用の広告がないため。2026-11-11）
 (function () {
   var q = new URLSearchParams(location.search);
-  var noads = q.get('noads');
+  var noads = q.get('noads'), prov = q.get('adprov');
   if (noads === '1') document.cookie = 'waqk_noads=1; Path=/; Max-Age=2592000; Secure; SameSite=Lax';
   if (noads === '0') document.cookie = 'waqk_noads=; Path=/; Max-Age=0; Secure; SameSite=Lax';
   // waqk.jp 以外（workers.dev・プレビュー URL・手元）は ?noads=1 と同じ扱いにし、?adtest=1 も効かせない（審査を通っていないドメインで広告を読まない。2026-10-29）。
   // 手元（localhost）だけは、帯の位置を確かめる空の枠を出す（ADS.dry。showBanner で広告を読む前に戻る）
-  if (location.hostname !== 'waqk.jp') { ADS.dry = ADS.enabled && noads !== '1' && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); noads = '1'; }
+  if (location.hostname !== 'waqk.jp') { ADS.dry = ADS.enabled && noads !== '1' && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); noads = '1'; prov = null; }
   if (q.get('debug') === '1' && noads !== '1') { ADS.dry = ADS.enabled; noads = '1'; } // ?debug=1（キー9の近道など）は本物の広告を読まず、空の帯だけ出す（2026-10-30 運営者）
-  ADS.test = q.get('adtest') === '1';
-  var off = noads === '1' || (!ADS.test && noads !== '0' && /(?:^|;\s*)waqk_noads=1(?:;|$)/.test(document.cookie));
+  if (prov === 'adsense' || prov === 'adx') ADS.provider_pc = ADS.provider_sp = prov;
+  // この画面の帯の provider（showBanner と同じ幅の決め方）。viewport の meta より前なので、スマホの innerWidth は 980 のことがあり screen.width でも押さえる（screen.width が 0 の環境もある）
+  var im = (Math.min(innerWidth, screen.width || innerWidth) - 16 >= 728 ? ADS.provider_pc : ADS.provider_sp) !== 'adsense';
+  ADS.test = !im && q.get('adtest') === '1';
+  if (im && q.get('adtest') === '1' && noads !== '1') ADS.dry = ADS.enabled; // AdX の ?adtest=1 は空の帯（Cookie があっても出す）
+  var off = noads === '1' || (!ADS.test && prov !== 'adx' && noads !== '0' && /(?:^|;\s*)waqk_noads=1(?:;|$)/.test(document.cookie));
   if (!ADS.enabled || off) { ADS.banner = !!ADS.dry; ADS.h5 = 'off'; }
   else if (ADS.test && ADS.h5 !== 'off') ADS.h5 = 'test'; // h5 が 'off' のときは ?adtest=1 でも head で読まない
   // adsbygoogle.js は、H5 を使うときはここで、帯は帯を作るとき（showBanner）に初めて読む

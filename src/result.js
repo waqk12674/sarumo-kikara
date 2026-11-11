@@ -88,24 +88,52 @@ export async function finish() {
 // 結果画面の上の広告の帯（設定は index.html の head の ADS。秋刀魚・だし巻きと同じ仕組み）：結果画面が出たときに1ページ1回だけ作り、一度出したら消さない（帯を出したページの「もう一度」は読み直し。main.js の restart）。
 // 帯の下端から一番近い押せるもの（画像の下の「Xでシェア」の行）まで 150px 取れて、その行が画面に収まる大きさ（PC 728×90、スマホ 320×50）を選び、
 // 取れない（横向きのスマホなど）なら作らない。ランキングは閉じた状態で測る（開くと src/ranking.js の fitGap が、押せる部品と表の上端を帯から150px 以上に保つ）。共有ページ /s/… では出さない。
-// adsbygoogle.js はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
+// adsbygoogle.js（AdSense）・smarttag（AdX。provider は head の ADS.provider_pc/sp）はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
 function showBanner() {
-  if (!ADS.banner || G.bandH || ADS.failed || !ADS.bannerSlot || location.pathname.includes("/s/")) return;
+  if (!ADS.banner || G.bandH || ADS.failed || location.pathname.includes("/s/")) return;
   if (innerWidth > innerHeight && innerHeight < 500) return; // 横向きのスマホ（844×390 など）は帯なし（全ゲーム共通。運営者承認済み）
   const root = document.documentElement, res = document.getElementById("result"), btn = document.getElementById("share");
   const setBand = (h) => { G.bandH = h; root.style.setProperty("--adH", h + "px"); root.classList.toggle("adOn", h > 0); };
   for (const [w, h] of [[728, 90], [320, 50]]) {
     if (w > innerWidth - 16) continue;
+    // AdX（i-mobile の smarttag）は PC とスマホを別のスポットにしているので、幅に入る最初の大きさだけを試す（150px 取れないときも小さい方に落とさない）
+    const slot = w > 320 ? "pc" : "sp", provider = ADS["provider_" + slot], im = provider !== "adsense";
+    if (!im && !ADS.bannerSlot) return;
     const band = document.createElement("div"); band.id = "adTop";
-    band.innerHTML = `<div style="width:${w}px"><div class="adLabel"><span lang="ja">広告</span><span lang="en">Advertisement</span></div><div style="height:${h}px"></div></div>`;
+    band.innerHTML = `<div style="width:${w}px"><div class="adLabel"><span lang="ja">広告</span><span lang="en">Advertisement</span></div><div style="width:${w}px;height:${h}px;overflow:hidden"></div></div>`;
     document.body.prepend(band); // ゲームの画面・結果画面（fixed）は --adH で帯の下に下げる。描く前に測って、合わなければ外す
     setBand(band.offsetHeight);
     // 結果画面は帯の下端から150px 下に始まる（html.adOn .result）ので、ボタンは必ず150px 以上離れる。offsetTop は結果画面の上端からの位置で、スクロールしても変わらない
-    if (btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); continue; }
+    if (btn.offsetTop + btn.offsetHeight > res.clientHeight) { band.remove(); setBand(0); if (im) return; continue; }
     resize();
     fitGap(); // 結果画像の分だけカードを上へ伸ばす（押せる部品は帯から150px 以上のまま）
-    if (ADS.dry) return; // 手元：空の枠だけ出し、広告のスクリプトは読まない
-    ADS.load().addEventListener("error", () => { ADS.failed = true; band.remove(); setBand(0); resize(); });
+    if (ADS.dry) return; // 手元・?debug=1・AdX の ?adtest=1：空の枠だけ出し、広告のスクリプトは読まない
+    // GA4：帯を作ったこと（ad_band_show）と、帯の中に広告が入ったこと（ad_band_filled。2秒ごとに10秒まで見て1回だけ）を、provider ごとに同じ物差しで送る（だし巻きと同じ）
+    // 入ったの判定：大きさのある iframe（AdSense はさらに data-ad-status="filled"）。ad_size は広告の大きさ（帯より大きくないかの確認用）
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: "ad_band_show", game_id: "sarumo-kikara", provider, slot });
+    let tries = 0;
+    const watch = setInterval(() => {
+      const ins = band.querySelector("ins.adsbygoogle");
+      const f = [...band.querySelectorAll("iframe")].find((e) => e.offsetWidth > 1 && e.offsetHeight > 1);
+      const ok = f && (!ins || ins.dataset.adStatus === "filled");
+      if (ok) window.dataLayer.push({ event: "ad_band_filled", game_id: "sarumo-kikara", provider, slot, ad_size: f.offsetWidth + "x" + f.offsetHeight });
+      if (ok || ++tries >= 5 || !band.isConnected) clearInterval(watch);
+    }, 2000);
+    const fail = () => { ADS.failed = true; band.remove(); setBand(0); resize(); };
+    // AdX：受け取ったタグと同じ形で、共通のスクリプトを1回だけ読み、帯の中に同じ id・data-smarttag-spot の div を作って display を呼ぶ（だし巻きと同じ）
+    if (provider === "adx") {
+      const spot = ADS["adx_spot_" + slot], id = "div-imp-smarttag-" + spot + "-0";
+      window.smarttag = window.smarttag || { cmd: [] };
+      const s = document.createElement("script");
+      s.async = true; s.src = "https://imp-adedge.i-mobile.co.jp/smarttags/7OnTUhdaU0KwSFYlUpEOyg.js"; s.onerror = fail;
+      document.head.appendChild(s);
+      const d = document.createElement("div"); d.id = id; d.dataset.smarttagSpot = spot;
+      band.firstChild.lastChild.replaceChildren(d);
+      smarttag.cmd.push(function () { smarttag.display(id); });
+      return;
+    }
+    ADS.load().addEventListener("error", fail);
     // レスポンシブのユニットだが、data-ad-format は付けず full-width-responsive を切って、枠より広がらないようにする
     const ins = document.createElement("ins");
     ins.className = "adsbygoogle"; ins.style.cssText = `width:${w}px;height:${h}px`;

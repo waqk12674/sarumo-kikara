@@ -70,6 +70,7 @@
 - 遊び方は HTML の本文としても置く（文字数稼ぎはしない）
 - 広告は結果画面の上の帯だけ（2026-10-30 運営者。秋刀魚・だし巻きと同じ仕組み）。設定は index.html の head の `ADS`（`enabled:false` で push すれば全員止まる。`?noads=1`・`?adtest=1`、waqk.jp 以外では読まない。手元は空の枠だけ）。H5（adBreak）は `h5:'off'` で使っていない。プレイ中・開始前・操作のたびには出さない。クリックを誘う文言は使わない
   - 帯は `src/result.js` の `showBanner`（ランキングの読み込みのあとで、帯の下端から「Xでシェア」の行まで150px・その行が画面に収まる大きさを 728×90→320×50 で選ぶ。取れなければ出さない。横向きのスマホ（横長で高さ500未満）と共有ページ /s/… では出さない）。ゲームの画面と結果画面は `--adH` で帯の下に縮め、絵は上側を切る（camera.js の resize・main.js の描画の oy）。帯を出したら上の札（.hud）・風・数値表示を隠す
+  - 2026-11-11 から帯は i-mobile 経由の AdX（smarttag。`ADS.provider_pc`/`provider_sp`='adx'、スポット PC 1951588（728×90）・スマホ 1951587（320×50）。手本は dashimaki）。'adsense' に戻せば AdSense の帯。`?adprov=adsense|adx` でそのページだけ切り替え。AdX の画面では `?adtest=1` は本物を読まず空の帯だけ（AdX は小さい方に落とさない）。GA4 に `ad_band_show`・`ad_band_filled`
   - 帯を出したページ（`G.bandH`>0）だけ、「もう一度」「やり直す」は読み直し（sessionStorage の `skk_autostart` で遊び方を出さずに始める）。ランキングは sessionStorage の `skk_board` に持ち越し、取り直すかは今までどおり `fresh` で決める
 - 画面サイズ固定（ドラッグでページがスクロールしない）
 - 配信は「ゲームごとの Worker ルート `waqk.jp/sarumo-kikara/*`＋`_redirects` の `/sarumo-kikara/* /:splat 200` で静的配信」。run_worker_first は処理が必要なパスだけ。`.assetsignore` は許可リスト方式
