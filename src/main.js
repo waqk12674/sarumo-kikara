@@ -9,7 +9,7 @@ import { stepWind, setWindBanner } from "./wind.js";
 import { resize, fitCam } from "./camera.js";
 import { updateNext, dropHeldSilently, clearInput } from "./input.js";
 import { drawScene } from "./render.js";
-import { finish, takeSnap } from "./result.js";
+import { finish, takeSnap, showGeniee } from "./result.js";
 import { loadSounds, play } from "./audio.js";
 import "./ranking.js";
 const { Engine, Bodies, Body, Composite, Events, Vector } = Matter;
@@ -158,6 +158,7 @@ loadMonkeys().then(() => {
   boot.remove();
   init(); resize();
   addEventListener("resize", resize);
+  showGeniee(); // ジーニーのオーバーレイ（広告の高さを測って resize し直すので、init のあと）
   // 遊び方を出して、「はじめる」まで止めておく（そのタップで環境音も鳴りはじめる）。
   // 帯を出したページの「もう一度」で読み直したときは出さずに始める（音は最初のタップで鳴りはじめる。audio.js）
   let auto = false;

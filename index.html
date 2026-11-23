@@ -17,8 +17,10 @@ var ADS = {
   enabled: true,   // false：バナーも H5 も止め、adsbygoogle.js も読まない
   // 帯の広告：728×90 が入る画面（PC）は provider_pc、入らない画面（スマホ・320×50）は provider_sp。
   // 'adx'：i-mobile 経由の Google AdX（smarttag）。adsbygoogle.js は読まない。2026-11-11 から PC・スマホとも 'adx'（試験。'adsense' に戻せば AdSense の帯）
-  provider_pc: 'adx',
-  provider_sp: 'adx',
+  // 'geniee'：帯を作らず、ジーニーのオーバーレイ（PC 1689081・スマホ 1689080）をページを開いた時点から出す（タグは body の <template id="geniee-…">）。
+  // 2026-11-23 から PC・スマホとも 'geniee'（運営者。全ゲーム同じ。'adx' に戻せば i-mobile の帯、'adsense' なら AdSense の帯）
+  provider_pc: 'geniee',
+  provider_sp: 'geniee',
   adx_spot_pc: '1951588', // PC の帯（728×90）
   adx_spot_sp: '1951587', // スマホの帯（320×50）
   banner: true,    // 結果画面の上の広告の帯
@@ -38,12 +40,12 @@ var ADS = {
   // 手元（localhost）だけは、帯の位置を確かめる空の枠を出す（ADS.dry。showBanner で広告を読む前に戻る）
   if (location.hostname !== 'waqk.jp') { ADS.dry = ADS.enabled && noads !== '1' && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); noads = '1'; prov = null; }
   if (q.get('debug') === '1' && noads !== '1') { ADS.dry = ADS.enabled; noads = '1'; } // ?debug=1（キー9の近道など）は本物の広告を読まず、空の帯だけ出す（2026-10-30 運営者）
-  if (prov === 'adsense' || prov === 'adx') ADS.provider_pc = ADS.provider_sp = prov;
+  if (prov === 'adsense' || prov === 'adx' || prov === 'geniee') ADS.provider_pc = ADS.provider_sp = prov;
   // この画面の帯の provider（showBanner と同じ幅の決め方）。viewport の meta より前なので、スマホの innerWidth は 980 のことがあり screen.width でも押さえる（screen.width が 0 の環境もある）
   var im = (Math.min(innerWidth, screen.width || innerWidth) - 16 >= 728 ? ADS.provider_pc : ADS.provider_sp) !== 'adsense';
   ADS.test = !im && q.get('adtest') === '1';
   if (im && q.get('adtest') === '1' && noads !== '1') ADS.dry = ADS.enabled; // AdX の ?adtest=1 は空の帯（Cookie があっても出す）
-  var off = noads === '1' || (!ADS.test && prov !== 'adx' && noads !== '0' && /(?:^|;\s*)waqk_noads=1(?:;|$)/.test(document.cookie));
+  var off = noads === '1' || (!ADS.test && prov !== 'adx' && prov !== 'geniee' && noads !== '0' && /(?:^|;\s*)waqk_noads=1(?:;|$)/.test(document.cookie));
   if (!ADS.enabled || off) { ADS.banner = !!ADS.dry; ADS.h5 = 'off'; }
   else if (ADS.test && ADS.h5 !== 'off') ADS.h5 = 'test'; // h5 が 'off' のときは ?adtest=1 でも head で読まない
   // adsbygoogle.js は、H5 を使うときはここで、帯は帯を作るとき（showBanner）に初めて読む
@@ -108,7 +110,9 @@ html[lang="ja"] [lang="en"],html[lang="en"] [lang="ja"],html[lang="ja"] [data-fo
 html,body{height:100%}
 body{margin:0;background:var(--washi);color:var(--sumi);font-family:var(--font-mincho);overflow:hidden;
   touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#cv{position:fixed;inset:0;top:var(--adH,0px);width:100%;height:calc(100% - var(--adH,0px));display:block}
+#cv{position:fixed;inset:0;top:var(--adH,0px);width:100%;height:calc(100% - var(--adH,0px) - var(--adB,0px));display:block}
+/* --adB：ジーニーのオーバーレイの高さ（src/result.js の showGeniee が #geniee_overlay_boots を測って入れる）。ゲームの画面・下の札・結果画面をその分上げる */
+body > [data-cptid]{position:fixed}
 /* 結果画面の上の広告の帯（src/result.js の showBanner）：ゲームの画面に重ねず、ページの上に並べ、ゲームの画面と結果画面はその下に縮める（--adH）。境目の線で、広告がゲームの一部に見えないように */
 #adTop{box-sizing:border-box;padding:calc(4px + env(safe-area-inset-top,0px)) 0 6px;background:var(--kinari);border-bottom:1.5px solid var(--line);display:flex;justify-content:center;overflow:hidden}
 #adTop .adLabel{font-size:10px;line-height:14px;color:var(--usuzumi)}
@@ -169,7 +173,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
   .pull{font-size:13px;letter-spacing:.06em}
   .next .lbl{font-size:13px}
 }
-.bottom{position:fixed;left:0;right:0;bottom:0;padding:6px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
+.bottom{position:fixed;left:0;right:0;bottom:var(--adB,0px);padding:6px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
   display:flex;justify-content:space-between;align-items:flex-end;gap:8px;pointer-events:none;z-index:2}
 .bottom > *{pointer-events:auto}
 .chip{background:rgba(240,233,219,.88);border:1.5px solid var(--line);border-radius:999px;padding:6px 16px;font-weight:700;font-size:13px;white-space:nowrap}
@@ -180,7 +184,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
   transition:opacity .4s}
 .wind.off{opacity:0}
 
-.tune{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 58px);z-index:3;width:min(280px,calc(100% - 28px));
+.tune{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 58px + var(--adB,0px));z-index:3;width:min(280px,calc(100% - 28px));
   background:var(--kinari);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .tune h2{margin:0;font-size:14px;font-weight:800}
 .tune label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;font-weight:700}
@@ -190,7 +194,7 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 .dbg{position:fixed;left:8px;top:calc(var(--hud-h,120px) + 40px);z-index:2;margin:0;font:11px/1.4 ui-monospace,monospace;
   background:rgba(246,240,226,.85);padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre}
 
-.result{position:fixed;inset:0;top:var(--adH,0px);background:var(--scrim);z-index:5;display:flex;justify-content:center;
+.result{position:fixed;inset:0;top:var(--adH,0px);bottom:var(--adB,0px);background:var(--scrim);z-index:5;display:flex;justify-content:center;
   padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);overflow:auto;touch-action:auto}
 /* 結果カード：「ランキング」で広がる。表（ol）だけが縮み、それでも入らない画面だけカードの中をスクロールする（結果画面・ページはスクロールしない） */
 .card{margin:auto 0;background:var(--kinari);border:1.5px solid var(--line);border-radius:14px;width:min(420px,100%);padding:14px;display:flex;flex-direction:column;gap:10px;-webkit-user-select:text;user-select:text;box-sizing:border-box;max-height:100%;overflow:auto}
@@ -354,6 +358,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <button class="pill" id="rankClose"><span lang="ja">閉じる</span><span lang="en">Close</span></button>
 </dialog>
 
+<!-- ジーニーのタグ（ADS.provider_pc / provider_sp が 'geniee' のときだけ使う。2026-11-23）。C:\src\geniee-tags-261120.txt から一字も変えずに貼る。head タグは1ページに1回だけ入れる -->
+<template id="geniee-head"><!-- Geniee Wrapper Head Tag -->
+<script>
+  window.gnshbrequest = window.gnshbrequest || {cmd:[]};
+  window.gnshbrequest.cmd.push(function(){
+    window.gnshbrequest.forceInternalRequest();
+  });
+</script>
+<script async src="https://cpt.geniee.jp/hb/v1/237584/3621/wrapper.min.js"></script>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+<!-- /Geniee Wrapper Head Tag --></template>
+<template id="geniee-pc"><!-- Geniee Wrapper Body Tag 1689081 -->
+<div data-cptid="1689081" style="display: block;">
+<script>
+  window.gnshbrequest.cmd.push(function() {
+    window.gnshbrequest.applyPassback("1689081", "[data-cptid='1689081']");
+  });
+</script>
+</div>
+<!-- /Geniee Wrapper Body Tag 1689081 --></template>
+<template id="geniee-sp"><!-- Geniee Wrapper Body Tag 1689080 -->
+<div data-cptid="1689080" style="display: block;">
+<script>
+  window.gnshbrequest.cmd.push(function() {
+    window.gnshbrequest.applyPassback("1689080", "[data-cptid='1689080']");
+  });
+</script>
+</div>
+<!-- /Geniee Wrapper Body Tag 1689080 --></template>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script>if(!window.Matter)document.getElementById("boot").textContent=document.documentElement.lang==="en"?"Couldn't load the physics engine. Please reload.":"物理エンジンを読み込めませんでした。再読み込みしてください。";</script>
 <script type="module" src="src/main.js"></script>

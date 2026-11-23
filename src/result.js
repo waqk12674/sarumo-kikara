@@ -90,6 +90,23 @@ export async function finish() {
 // 帯の下端から一番近い押せるもの（画像の下の「Xでシェア」の行）まで 150px 取れて、その行が画面に収まる大きさ（PC 728×90、スマホ 320×50）を選び、
 // 取れない（横向きのスマホなど）なら作らない。ランキングは閉じた状態で測る（開くと src/ranking.js の fitGap が、押せる部品と表の上端を帯から150px 以上に保つ）。共有ページ /s/… では出さない。
 // adsbygoogle.js（AdSense）・smarttag（AdX。provider は head の ADS.provider_pc/sp）はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
+// ジーニーのオーバーレイ（PC 1689081・スマホ 1689080。2026-11-23）：ページを開いた時点で1回だけ置く（main.js の起動）。PC かスマホかは帯と同じ（728px の帯が入る幅なら PC）、横向きのスマホは出さない。
+// その側の provider が 'geniee' のときだけ。手元・?debug=1・?adtest=1（ADS.dry）、?noads=1・Cookie（ADS.banner が false）、共有ページ /s/…（帯と同じ）では読まない。
+// タグは index.html の <template id="geniee-…">（createContextualFragment で入れると中の script が動く）。wrapper.min.js が読めなければ div を外す。
+// ジーニーが body の最後に足す広告の高さの余白 #geniee_overlay_boots を測り、G.adB・--adB でゲームの画面・下の札・結果画面をその分上げる（muscle-painter と同じ）
+export function showGeniee() {
+  if (!ADS.banner || ADS.dry || ADS.failed || location.pathname.includes("/s/") || (innerWidth > innerHeight && innerHeight < 500)) return;
+  const pc = innerWidth - 16 >= 728;
+  if (ADS[pc ? "provider_pc" : "provider_sp"] !== "geniee") return;
+  const frag = (id) => document.createRange().createContextualFragment(document.getElementById(id).innerHTML);
+  const body = frag(pc ? "geniee-pc" : "geniee-sp"), div = body.querySelector("[data-cptid]"), head = frag("geniee-head");
+  head.querySelector('script[src*="cpt.geniee.jp"]').addEventListener("error", () => div.remove());
+  new MutationObserver((m, o) => {
+    const b = document.getElementById("geniee_overlay_boots"); if (!b) return; o.disconnect();
+    new ResizeObserver(() => { G.adB = b.offsetHeight; document.documentElement.style.setProperty("--adB", G.adB + "px"); resize(); }).observe(b);
+  }).observe(document.body, { childList: true });
+  document.head.append(head); document.body.append(body);
+}
 function showBanner() {
   if (!ADS.banner || G.bandH || ADS.failed || location.pathname.includes("/s/")) return;
   if (innerWidth > innerHeight && innerHeight < 500) return; // 横向きのスマホ（844×390 など）は帯なし（全ゲーム共通。運営者承認済み）
@@ -99,6 +116,7 @@ function showBanner() {
     if (w > innerWidth - 16) continue;
     // AdX（i-mobile の smarttag）は PC とスマホを別のスポットにしているので、幅に入る最初の大きさだけを試す（150px 取れないときも小さい方に落とさない）
     const slot = w > 320 ? "pc" : "sp", provider = ADS["provider_" + slot], im = provider !== "adsense";
+    if (provider === "geniee") return; // ジーニー：帯は作らない（場所も空けない・「もう一度」も読み直さない）。オーバーレイはページを開いたとき（showGeniee）
     if (!im && !ADS.bannerSlot) return;
     const band = document.createElement("div"); band.id = "adTop";
     band.innerHTML = `<div style="width:${w}px"><div class="adLabel"><span lang="ja">広告</span><span lang="en">Advertisement</span></div><div style="width:${w}px;height:${h}px;overflow:hidden"></div></div>`;

@@ -41,6 +41,7 @@ export const G = {
   wind: { w: 0, dir: 1, start: 0, dur: 0, str: 0, next: Infinity, warned: false, phase: 0 },
   dragging: false, paused: false, // paused：遊び方・ランキングを開いているあいだ止める
   bandH: 0,                           // 結果画面の上の広告の帯の高さ（result.js の showBanner。出したら消さない）
+  adB: 0,                             // ジーニーのオーバーレイの高さ（result.js の showGeniee）。ゲームの画面の下をその分空ける
   pops: [], rings: [], sparks: [], flash: null, shake: 0,
   best: null, recentGroups: [], // 結果画像の候補（サルがいちばん多い瞬間）と、直前4秒の群れの大きさ
   view: { s: 1, ox: 0, oy: 0 }, dpr: 1,
