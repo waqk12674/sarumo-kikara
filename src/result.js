@@ -91,11 +91,11 @@ export async function finish() {
 // 取れない（横向きのスマホなど）なら作らない。ランキングは閉じた状態で測る（開くと src/ranking.js の fitGap が、押せる部品と表の上端を帯から150px 以上に保つ）。共有ページ /s/… では出さない。
 // adsbygoogle.js（AdSense）・smarttag（AdX。provider は head の ADS.provider_pc/sp）はここで初めて読む。読めなかったら帯を外して画面を元に戻し、そのページではもう作らない（ADS.failed）。読めたあとに広告が入らなかった（unfilled）ときは帯を残す
 // ジーニーのオーバーレイ（PC 1689081・スマホ 1689080。2026-11-23）：ページを開いた時点で1回だけ置く（main.js の起動）。PC かスマホかは帯と同じ（728px の帯が入る幅なら PC）、横向きのスマホは出さない。
-// その側の provider が 'geniee' のときだけ。手元・?debug=1・?adtest=1（ADS.dry）、?noads=1・Cookie（ADS.banner が false）、共有ページ /s/…（帯と同じ）では読まない。
+// その側の provider が 'geniee' のときだけ。手元・?debug=1・?adtest=1（ADS.dry）、?noads=1・Cookie（ADS.banner が false）では読まない。共有ページ /s/… でも出す（中身はトップと同じ。2026-11-24 運営者）。
 // タグは index.html の <template id="geniee-…">（createContextualFragment で入れると中の script が動く）。wrapper.min.js が読めなければ div を外す。
 // ジーニーが body の最後に足す広告の高さの余白 #geniee_overlay_boots を測り、G.adB・--adB でゲームの画面・下の札・結果画面をその分上げる（muscle-painter と同じ）
 export function showGeniee() {
-  if (!ADS.banner || ADS.dry || ADS.failed || location.pathname.includes("/s/") || (innerWidth > innerHeight && innerHeight < 500)) return;
+  if (!ADS.banner || ADS.dry || ADS.failed || (innerWidth > innerHeight && innerHeight < 500)) return;
   const pc = innerWidth - 16 >= 728;
   if (ADS[pc ? "provider_pc" : "provider_sp"] !== "geniee") return;
   const frag = (id) => document.createRange().createContextualFragment(document.getElementById(id).innerHTML);
