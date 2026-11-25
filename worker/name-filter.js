@@ -42,7 +42,7 @@ const CONTAINS = [
   '顔射', 'がんしゃ', 'ふぁっか', 'fakku', 'あくめ', 'せふれ', 'はめどり', 'やり珍', 'aなる',
   'sex', 'あなにー', 'あな開発', '穴る', '穴掘', 'けつ穴', 'けつおな', 'おなきん', 'オナ禁', 'あなって', 'あなった', 'あなりたい', 'あなりすぎ', 'あなれた',
   'しこしこ', 'ちんげ', 'まんげ', 'でかちん', 'そちん', '粗ちん', '祖ちん', 'ぱいぱん', '乳輪', '精子', '痴女', '早漏', '裸えぷろん', 'こんどーむ',
-  'あへ顔', 'あへがお', '淫夢', 'まnこ', 'びっち',
+  'あへ顔', 'あへがお', '淫夢', 'まnこ',
   'fuck', 'fvck', 'shit', 'bitch', 'cunt', 'whore', 'slut', 'penis', 'vagina', 'pussy', 'porn',
   'hentai', 'dildo', 'asshole', 'blowjob', 'boobs', 'bastard', 'bollocks', 'bukkake', 'cumshot', 'creampie',
   'clitoris', 'cunnilingus', 'ejaculat', 'fellatio', 'gangbang', 'handjob', 'incest', 'jizz', 'masturbat',
@@ -66,7 +66,7 @@ const CONTAINS = [
 const EXACT = [
   // 性的・下品
   'えろ', 'えっち', 'ちんちん', 'うんち', 'ちかん', 'ごうかん', 'ばいぶ', 'くんに', 'すけべ', 'まら', 'しょうふ',
-  'sex', 'dick', 'cock', 'ass', 'cum', 'tits', 'rape', 'rapist', 'anal', 'ero', 'ecchi', 'sexy', 'xxx', 'boner', 'horny', 'milf', 'porno', 'cumming',
+  'びっち', 'sex', 'dick', 'cock', 'ass', 'cum', 'tits', 'rape', 'rapist', 'anal', 'ero', 'ecchi', 'sexy', 'xxx', 'boner', 'horny', 'milf', 'porno', 'cumming',
   // 差別
   'がいじ', 'ちしょう', 'かたわ', 'めくら', 'つんぼ', 'ちょん', 'びっこ', 'おかま', 'ほも', 'れず',
   'chink', 'kike', 'spic', 'fag', 'coon', 'paki', 'negro',
@@ -75,7 +75,7 @@ const EXACT = [
 ];
 
 // 誤判定よけ：この部分は取り除いてから調べる（例：Scunthorpe の cunt、shitake の shit）
-const ALLOW = ['scunthorpe', 'shitake', 'shiitake', 'cocktail', 'ちくびれ', 'sussex', 'essex', 'wessex', 'middlesex'];
+const ALLOW = ['scunthorpe', 'shitake', 'shiitake', 'cocktail', 'ちくびれ', 'sussex', 'essex', 'wessex', 'middlesex', 'まんげきょう', '万華鏡'];
 
 // URL・連絡先（そろえる前の文字で調べる）
 const CONTACT = [

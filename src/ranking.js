@@ -119,9 +119,19 @@ $("rankToggle").addEventListener("click", () => {
   if (box.hidden || !card.data) fitGap();
   if (!box.hidden) { if (card.data) show(card); else load(card); }
 });
-$("rankSend").addEventListener("click", async () => {
+// 「登録」→ 確認（名前と注意書き）→「登録する」で送る。「やめる」・Esc は名前の欄に戻る（2026-11-25）
+const rkCf = $("rankConfirm");
+$("rankSend").addEventListener("click", () => {
   const name = $("rankName").value.trim(), msg = $("rankMsg");
   if (!name) { msg.textContent = T.RANK_NAME; msg.hidden = false; $("rankName").focus(); return; }
+  $("rankCfName").textContent = document.documentElement.lang === "en" ? `“${name}”` : `「${name}」`;
+  rkCf.showModal(); rkCf.scrollTop = 0;
+});
+$("rankCfNo").addEventListener("click", () => rkCf.close());
+rkCf.addEventListener("close", () => { if (rkCf.returnValue !== "yes") $("rankName").focus(); rkCf.returnValue = ""; });
+$("rankCfYes").addEventListener("click", () => { rkCf.close("yes"); send($("rankName").value.trim()); });
+async function send(name) {
+  const msg = $("rankMsg");
   $("rankSend").disabled = true; msg.textContent = T.RANK_SENDING; msg.hidden = false;
   try {
     const { status, data } = await call({ method: "POST", headers: { "content-type": "application/json" },
@@ -138,7 +148,7 @@ $("rankSend").addEventListener("click", async () => {
     msg.textContent = e.message === "offline" ? T.RANK_OFFLINE : T.RANK_FAIL;
     $("rankSend").disabled = false;
   }
-});
+}
 
 // ---------- 画面の下の「ランキング」：開いているあいだはゲームを止める ----------
 const dlg = $("rankDialog");

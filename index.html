@@ -240,6 +240,18 @@ html[lang="en"] .next .nm b{line-break:auto} /* 英語は単語の途中で折�
 body:has(#adTop) .rankDialog{top:calc(var(--adH) + 150px);max-height:calc(100dvh - var(--adH) - 166px)}
 .rankDialog p{margin:6px 0;font-size:12px;color:var(--usuzumi);text-align:center}
 .rankDialog .pill{display:block;margin:10px auto 0;border:1.5px solid var(--line);border-radius:999px;padding:8px 22px;font-weight:700;background:rgba(240,233,219,.88)}
+/* 登録の確認（2026-11-25。src/ranking.js）：名前と注意書き。帯があるときは上の body:has(#adTop) .rankDialog で帯の下端から150px 下に置く */
+#rankConfirm{bottom:var(--adB,0px)}
+#rankConfirm::backdrop{bottom:var(--adB,0px)}
+#rankConfirm h2{margin-bottom:8px}
+.rankDialog p.cfName{margin:0 0 8px;font-size:16px;font-weight:800;color:var(--sumi);overflow-wrap:anywhere}
+.rankDialog ul.cfRules{margin:0;padding-left:1.2em;font-size:12.5px;line-height:1.6;text-align:left;list-style:disc}
+.rankDialog .cfRules li{display:list-item;border:0;counter-increment:none}
+.rankDialog .cfRules li::before{content:none}
+.rankDialog .cfRules[lang="ja"]{word-break:keep-all;overflow-wrap:anywhere} /* 日本語は文節の切れ目（<wbr>）だけで改行する */
+.cfBtns{display:flex;gap:10px;justify-content:center;margin-top:12px}
+.rankDialog .cfBtns .pill{margin:0;padding:8px 18px}
+.rankDialog .cfBtns .cfYes{background:var(--shu);border-color:var(--shu);color:var(--kinari);font-weight:800}
 .howto{width:min(360px,calc(100% - 32px));box-sizing:border-box;max-height:calc(100% - 32px);overflow:auto;background:var(--kinari);color:var(--sumi);
   border:1.5px solid var(--line);border-radius:14px;padding:16px 16px 18px;font-family:var(--font-mincho)}
 .howto::backdrop{background:var(--scrim)}
@@ -356,6 +368,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <p id="rankDlgMsg" aria-live="polite" hidden></p>
   <ol id="rankDlgList"></ol>
   <button class="pill" id="rankClose"><span lang="ja">閉じる</span><span lang="en">Close</span></button>
+</dialog>
+<!-- 結果画面の「登録」で開く確認（2026-11-25 運営者決定の文言。src/ranking.js） -->
+<dialog class="rankDialog" id="rankConfirm" aria-labelledby="rankCfTitle">
+  <h2 id="rankCfTitle"><span lang="ja">この名前で登録しますか？</span><span lang="en">Register with this name?</span></h2>
+  <p class="cfName" id="rankCfName"></p>
+  <ul class="cfRules" lang="ja"><li>名前は<wbr>ランキングで、<wbr>だれでも<wbr>見られます。</li><li>本名・<wbr>学校名・<wbr>住所・<wbr>連絡先など、<wbr>個人が<wbr>分かる<wbr>ことは<wbr>入れないで<wbr>ください。</li><li>下品な<wbr>言葉や、<wbr>人を<wbr>傷つけたり、<wbr>からかったり<wbr>する<wbr>名前は<wbr>登録できません。</li><li>ルールに<wbr>反する<wbr>名前や<wbr>不正な<wbr>記録は、<wbr>運営者が<wbr>削除します。<wbr>悪質な<wbr>場合は、<wbr>法的措置を<wbr>とる<wbr>ことが<wbr>あります。</li></ul>
+  <ul class="cfRules" lang="en"><li>Your name is shown publicly on the leaderboard.</li><li>Don’t include personal info (real name, school, address, contact details).</li><li>No offensive, hateful or bullying names.</li><li>We remove names and scores that break the rules, and may take legal action in serious cases.</li></ul>
+  <div class="cfBtns"><button class="pill" id="rankCfNo" type="button"><span lang="ja">やめる</span><span lang="en">Cancel</span></button><button class="pill cfYes" id="rankCfYes" type="button"><span lang="ja">登録する</span><span lang="en">Register</span></button></div>
 </dialog>
 
 <!-- ジーニーのタグ（ADS.provider_pc / provider_sp が 'geniee' のときだけ使う。2026-11-23）。C:\src\geniee-tags-261120.txt から一字も変えずに貼る。head タグは1ページに1回だけ入れる -->
