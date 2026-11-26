@@ -249,6 +249,8 @@ body:has(#adTop) .rankDialog{top:calc(var(--adH) + 150px);max-height:calc(100dvh
 .rankDialog .cfRules li{display:list-item;border:0;counter-increment:none}
 .rankDialog .cfRules li::before{content:none}
 .rankDialog .cfRules[lang="ja"]{word-break:keep-all;overflow-wrap:anywhere} /* 日本語は文節の切れ目（<wbr>）だけで改行する */
+.rankDialog p.cfHead{margin:0 0 -4px;font-size:13px;font-weight:700;color:var(--sumi);text-align:left}
+.rankDialog .cfRules ul{margin:0;padding-left:1.1em;list-style:circle} /* 「以下に該当する名前」の小項目 */
 .cfBtns{display:flex;gap:10px;justify-content:center;margin-top:12px}
 .rankDialog .cfBtns .pill{margin:0;padding:8px 18px}
 .rankDialog .cfBtns .cfYes{background:var(--shu);border-color:var(--shu);color:var(--kinari);font-weight:800}
@@ -373,8 +375,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <dialog class="rankDialog" id="rankConfirm" aria-labelledby="rankCfTitle">
   <h2 id="rankCfTitle"><span lang="ja">この名前で登録しますか？</span><span lang="en">Register with this name?</span></h2>
   <p class="cfName" id="rankCfName"></p>
-  <ul class="cfRules" lang="ja"><li>名前は<wbr>ランキングで、<wbr>だれでも<wbr>見られます。</li><li>本名・<wbr>学校名・<wbr>住所・<wbr>連絡先など、<wbr>個人が<wbr>分かる<wbr>ことは<wbr>入れないで<wbr>ください。</li><li>下品な<wbr>言葉や、<wbr>人を<wbr>傷つけたり、<wbr>からかったり<wbr>する<wbr>名前は<wbr>登録できません。</li><li>ルールに<wbr>反する<wbr>名前や<wbr>不正な<wbr>記録は、<wbr>運営者が<wbr>削除します。<wbr>悪質な<wbr>場合は、<wbr>法的措置を<wbr>とる<wbr>ことが<wbr>あります。</li></ul>
-  <ul class="cfRules" lang="en"><li>Your name is shown publicly on the leaderboard.</li><li>Don’t include personal info (real name, school, address, contact details).</li><li>No offensive, hateful or bullying names.</li><li>We remove names and scores that break the rules, and may take legal action in serious cases.</li></ul>
+  <p class="cfHead"><span lang="ja">ランキング登録時の注意事項</span><span lang="en">Before you register</span></p>
+  <!-- 注意書きの文の正本は C:/src/shared/ranking-notice.md（2026-11-26 運営者決定。ここで言い回しを変えない。<wbr> は改行の位置だけ） -->
+  <ul class="cfRules" lang="ja"><li>登録した<wbr>名前は<wbr>第三者に<wbr>公開されます（だれでも<wbr>見られます）</li><li>以下に<wbr>該当する<wbr>名前は<wbr>登録しないで<wbr>ください<ul><li>公序良俗に<wbr>反する<wbr>言葉（下品な<wbr>言葉・<wbr>人を<wbr>傷つける<wbr>言葉など）</li><li>個人情報（本名・<wbr>学校名・<wbr>住所・<wbr>連絡先など）</li></ul></li><li>上記に<wbr>違反した<wbr>名前や、<wbr>不正な<wbr>記録は、<wbr>運営者が<wbr>削除します</li><li>悪質と<wbr>認められる<wbr>場合には、<wbr>運営者が<wbr>法的措置を<wbr>とる<wbr>ことが<wbr>あります</li></ul>
+  <ul class="cfRules" lang="en"><li>Your name will be shown publicly (anyone can see it).</li><li>Don’t register names that include:<ul><li>Offensive words (rude or hurtful words, etc.)</li><li>Personal info (real name, school, address, contact details, etc.)</li></ul></li><li>We remove names that break these rules, and cheated scores.</li><li>In serious cases, we may take legal action.</li></ul>
   <div class="cfBtns"><button class="pill" id="rankCfNo" type="button"><span lang="ja">やめる</span><span lang="en">Cancel</span></button><button class="pill cfYes" id="rankCfYes" type="button"><span lang="ja">登録する</span><span lang="en">Register</span></button></div>
 </dialog>
 
